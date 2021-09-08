@@ -8,4 +8,4 @@ My OS curriculum design, using FUSE to build a user-mode toy file system.
 
 ### Timeline
 
-- [] Make a plan for this whole project.
+- [ ] Make a plan for this whole project.
