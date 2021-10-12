@@ -21,10 +21,14 @@
   2. **并发支持：**  
   to do 还在画饼中
 
-  3. **日志恢复机制：**  
+  3. **日志恢复机制：**
   to do 还在画饼中
 
 ## 项目实现
+
+1. 注意我们要使用libfuse的low level API，libfuse的高层API提供了一层打开文件描述和路径名的映射，使得高层API始终使用路径名作为参数。  
+这样比如write(fd,...)，fd指向打开描述，打开描述指向Inode号，如果是low level API，我们会传递给libfuse低级API接口的就是这个Inode号；但如果是传递给高层接口，那么内部的那层抽象会把打开描述指向的映射到路径名，使得传递的始终是路径名。  
+另外要注意的是，文件描述符和打开文件描述是进程属性，这里和libfuse无关，linux的那些系统调用会处理文件描述符和打开描述的数据结构，而libfuse的接口是从这里再往后面走，直接与Inode关联(低级接口)，或是提供一层映射始终使用路径名(高级接口)。
 
 ## 测试使用
 
@@ -40,7 +44,7 @@
 
 ## Timeline
 
-- [ ] 安装 libfuse 库，熟悉 libfuse 接口的使用，写 demo 测试
+- [x] 安装 libfuse 库，熟悉 libfuse 接口的使用，写 demo 测试
 - [ ] 通过文件模拟磁盘，设计磁盘块数据结构，完成 disk layer
 - [ ] 实现块缓冲机制，完成 block cache layer
 - [ ] 实现 inode layer 和 bmap layer
