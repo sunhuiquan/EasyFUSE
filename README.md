@@ -1,11 +1,10 @@
-# fuse-toy-fs
+# FUSE-FS
 
-My OS curriculum design, using FUSE(libfuse in linux) to build my user-mode toy file system.
+这是一个支持并发、支持日志恢复机制的一个类 UNIX 文件系统实现的用户态的文件系统。
 
 ## Index
 
 - [项目介绍](#项目介绍)
-- [项目原理](#项目原理)
 - [项目实现](#项目实现)
 - [测试使用](#测试使用)
 - [参考文献](#参考文献)
@@ -13,15 +12,17 @@ My OS curriculum design, using FUSE(libfuse in linux) to build my user-mode toy 
 
 ## 项目介绍
 
-  实现一个操作系统，一直被说成CS/CE本科生的三大终极浪漫之一(编译器，图形学，操作系统)，这个显然是不对的，因为怎么可能没有分布式和数据库呢？哈哈，这些是开玩笑的，计算机的领域繁杂而且隔领域如隔山，不过已经可见了操作系统的重要性，这个OS课设也算是我本科生涯的浪漫之一了。  
+玩具文件系统机制非常多，每年关于 FS 机制的 OS 课设也是非常多，但绝大部分都是玩具中的玩具。这个 FUSE-FS 的区别于那些糟糕玩具的地方有三个点，那就是用户态 FS、支持并发、支持日志恢复。
 
-  如何实现一个文件系统？很有意思的是，对于一个简单的文件系统demo，FS本身的实现难度一点也不大，关键问题是你怎么让你的文件系统被OS支持呢？这反而是难点。  
+  1. 用户态 FS：
+  设计 FS 的时候，为了显得不那么玩具，我想要通过 linux VFS 接口，让 linux 支持。但是直接在 linux 内核中实在太过困难，所以我选择了 FUSE 来实现一个用户态的文件系统.那么什么是 FUSE 呢？
+  简而言之，它作为一种通信机制，把内核对 VFS 接口的使用从内核态转发到用户态的我们实现的用户文件系统机制，然后用户文件系统把结果再通过 libfuse 发回内核，来完成对抽象文件系统(VFS)的实现。
 
-  我第一个想法是直接linux写出fs实现，但这涉及到linux内核上的修改，修改linux内核编写我们的支持VFS的fs，这显然对我来说是不可能做到的，如果我能做到我自然可以直接去微软和FLAG了；第二个想法是让linux内核支持我们的fs太难，那么我找个小操作系统内核支持不就行了吗，我写过好几个xv6 os的模块，但如果这样做显然太过划水了，因为那些lab虽然难，但仍然不免是代码填空而已；第三个想法是我自己实现一个操作系统内核不就行了，然后我估计了下时间，想了想再怎么肝也要个三五个月，还是作罢。  
-  
-  所以最后，我打算使用FUSE(Filesystem in Userspace)，它作为一种通信管道，让一个守护进程把内核对VFS的调用从内核态发到用户态的用户进程，然后我们根据libfuse的API实现我们的用户态fs，然后把返回结果通过libfuse发回内核态，完成对抽象文件系统VFS的接口支持，用linux下的libfuse库，实现我的用户态玩具文件系统，并在linux上测试和使用。
+  2. 并发支持：
+  to do 还在画饼中
 
-## 项目原理
+  3. 日志恢复机制：
+  to do 还在画饼中
 
 ## 项目实现
 
@@ -31,19 +32,18 @@ My OS curriculum design, using FUSE(libfuse in linux) to build my user-mode toy 
 
 [1] _XV6 book_ <https://pdos.csail.mit.edu/6.828/2020/xv6/book-riscv-rev1.pdf>  
 [2] _MIT 6.S081_ <https://pdos.csail.mit.edu/6.828/2020/index.html>  
-[3] _libfuse doc_  <http://libfuse.github.io/doxygen/>  
+[3] _libfuse doc_ <http://libfuse.github.io/doxygen/>  
 [3] _libfuse github_ <https://github.com/libfuse/libfuse>  
 [4] _深入理解计算机系统 (CS:APP)_  
-[5] _LINUX/UNIX系统编程手册 (TLPI)_  
+[5] _LINUX/UNIX 系统编程手册 (TLPI)_  
 [6] _操作系统概念 (OSC)_
 
 ## Timeline
 
-- [x] Make a plan for this whole project.
-- [ ] Read xv6 CH8.
-- [ ] Finish a filesystem based on risc-v xv6 operating system.
-- [ ] Get understand how to implement a toy filesystem.
-- [ ] Read libfuse document and learn how to use.
-- [ ] Write a filesystem using libfuse under linux. (Split this goal.)
-- [ ] Tests, tests, tests and so on and so forth.
-- [ ] Convert this README.md into a PPT to end this project.
+- [ ] 安装 libfuse 库，熟悉 libfuse 接口的使用，写 demo 测试
+- [ ] 通过文件模拟磁盘，设计磁盘块数据结构，完成 disk layer
+- [ ] 实现块缓冲机制，完成 block cache layer
+- [ ] 实现 inode layer 和 bmap layer
+- [ ] 通过 libfuse 实现 FS 的接口，并测试
+- [ ] 通过同步机制，增加对并发的支持
+- [ ] 实现日志恢复机制，增加 logging layer
