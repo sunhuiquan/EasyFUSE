@@ -44,7 +44,7 @@
 
 ## Timeline
 
-- [x] 安装 libfuse 库，熟悉 libfuse 接口的使用，写 demo 测试
+- [x] 安装 libfuse 库，熟悉 libfuse 接口的使用
 - [ ] 通过文件模拟磁盘，设计磁盘块数据结构，完成 disk layer
 - [ ] 实现块缓冲机制，完成 block cache layer
 - [ ] 实现 inode layer 和 bmap layer
