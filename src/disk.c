@@ -1,25 +1,48 @@
-// int main()
-// {
-// 	struct stat sbuf;
+#include "disk.h"
+#include "fs.h"
+#include "util.h"
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <string.h>
 
-// 	if ((fd = open("diskimg", O_RDWR)) == -1)
-// 		err_exit("open");
+static int disk_fd;
+static struct super_block superblock;
 
-// 	// 注意我们对特定文件进行的系统调用，linux会通过他们的类型
-// 	// 走向实际的对应处理代码，如果是ext4就走向ext4，如果是fuse
-// 	// 就走向fuse的处理代码，如果是设备文件就走向对应的驱动，所以
-// 	// 说我们这里对这个模拟磁盘文件走的代码实际是ex4，而之后对fuse
-// 	// 挂载的系统的调用走向的才是我们实现libfuse接口实际的代码,
-// 	// 所以虽然是同一个系统调用，但是执行的代码不同类型文件是不同的
-// 	if (fstat(fd, &sbuf) == -1)
-// 		err_exit("fstat");
-// 	printf("%ld\n", (long)sbuf.st_size);
+void init_disk(const char *path)
+{
+	struct stat sbuf;
+	uint real_size;
+	char temp[BLOCK_SIZE];
 
-// 	// test
-// 	// if (block_write("a", 1, 20) == -1)
-// 	// 	err_exit("block_write");
+	if ((disk_fd = open("diskimg", O_RDWR)) == -1)
+		err_exit("open");
 
-// 	// to do 磁盘全部清零
+	if (fstat(disk_fd, &sbuf) == -1)
+		err_exit("fstat");
+	real_size = sbuf.st_size;
+	if (real_size <= 64 * BLOCK_SIZE)
+		err_exit("diskimg too small");
 
-// 	// to do 初始化超级块（读取，初始化，写回）
-// }
+	// 初始化 super block 块
+	// 现在未加入日志支持，无logging layer的情况
+	// 0          | 1           | 2 ...        | rest
+	// boot block | super block | inode blocks | data blocks
+	superblock.block_num = real_size / BLOCK_SIZE; // 向下舍入
+	superblock.inode_block_startno = 2;
+	// superblock.data_block_startno = ?;
+	// superblock.inode_block_num = ? ;
+	// superblock.data_block_num =	 ? ;
+
+	// 初始化磁盘设备，只初始化用到的那些物理块即可
+	for (int i = 0; i < superblock.block_num; ++i)
+	{
+		if (read(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
+			err_exit("read");
+		memset(temp, 0, BLOCK_SIZE);
+		if (write(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
+			err_exit("write");
+	}
+
+	// to do
+}
