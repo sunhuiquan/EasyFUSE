@@ -4,11 +4,13 @@
 
 ## Index
 
-- [项目介绍](#项目介绍)
-- [项目实现](#项目实现)
-- [测试使用](#测试使用)
-- [参考文献](#参考文献)
-- [Timeline](#Timeline)
+- [FUSE-FS](#fuse-fs)
+	- [Index](#index)
+	- [项目介绍](#项目介绍)
+	- [项目实现](#项目实现)
+	- [测试使用](#测试使用)
+	- [参考文献](#参考文献)
+	- [Timeline](#timeline)
 
 ## 项目介绍
 
@@ -45,7 +47,7 @@
 ## Timeline
 
 - [x] 安装 libfuse 库，熟悉 libfuse 接口的使用
-- [ ] 通过文件模拟磁盘，设计磁盘块数据结构，完成 disk layer
+- [x] 通过文件模拟磁盘，设计磁盘块数据结构，完成 disk layer
 - [ ] 实现块缓冲机制，完成 block cache layer
 - [ ] 实现 inode layer 和 bmap layer
 - [ ] 通过 libfuse 实现 FS 的接口，并测试
