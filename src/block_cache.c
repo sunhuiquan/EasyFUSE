@@ -1,4 +1,5 @@
 #include "block_cache.h"
+// #include "disk.h"
 
 struct cache_list bcache;
 
@@ -12,4 +13,10 @@ void init_block_cache_block()
 	{
 		// to do
 	}
+}
+
+/* 如果已经缓存，那么直接从缓存里面拿出来；如果没缓存，那么取得一个空闲的（之后就可以再把磁盘内容读取后写到这上面） */
+struct cache_block *cache_block_get(int blockno)
+{
+	
 }

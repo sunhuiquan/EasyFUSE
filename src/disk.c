@@ -1,6 +1,6 @@
 #include "disk.h"
-#include "fs.h"
 #include "util.h"
+#include "block_cache.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -17,20 +17,20 @@ static int disk_fd;
 static struct super_block superblock;
 
 /* 初始化磁盘 */
-void init_disk(const char *path)
+int init_disk(const char *path)
 {
 	struct stat sbuf;
 	uint real_size;
 	char temp[BLOCK_SIZE];
 
 	if ((disk_fd = open("diskimg", O_RDWR)) == -1)
-		err_exit("open");
+		return -1;
 
 	if (fstat(disk_fd, &sbuf) == -1)
-		err_exit("fstat");
+		return -1;
 	real_size = sbuf.st_size;
 	if (real_size <= 64 * BLOCK_SIZE)
-		err_exit("diskimg too small");
+		return -1;
 
 	// 现在未加入日志支持，无logging layer的情况
 	// 0          | 1           | 2 ...        | rest
@@ -48,16 +48,20 @@ void init_disk(const char *path)
 	for (int i = 0; i < superblock.block_num; ++i)
 	{
 		if (read(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
-			err_exit("clear disk");
+			return -1;
 		memset(temp, 0, BLOCK_SIZE);
 		if (write(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
-			err_exit("clear disk");
+			return -1;
 	}
+	return 0;
 }
 
-/* 从磁盘中读取物理块到内存中的block cache数组缓冲结构，注意这里的 
- * blockno 是物理块号，不过我们这个 FS 中的物理块号和逻辑块号是一
- * 对一的，不然需要分析逻辑块地址映射到具体的物理块 */
-struct cache_block *block_get(int blockno)
+/* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用的结果） */
+int block_read(struct cache_block *buf)
 {
+	if (lseek(disk_fd, buf->blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
+		return -1;
+	if (read(disk_fd, &buf, BLOCK_SIZE) != BLOCK_SIZE)
+		return -1;
+	return 0;
 }

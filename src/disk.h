@@ -2,11 +2,12 @@
 #define DISK_H
 
 #include "fs.h"
+#include "block_cache.h"
 
 /* 初始化磁盘 */
-void init_disk(const char *path);
+int init_disk(const char *path);
 
-/* 从磁盘中读取物理块到内存中的block cache数组缓冲结构 */
-struct cache_block *block_get(int blockno);
+/* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用的结果） */
+int block_read(struct cache_block *buf);
 
 #endif
