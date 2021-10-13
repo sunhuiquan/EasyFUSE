@@ -6,6 +6,13 @@
 #include <sys/stat.h>
 #include <string.h>
 
+/**
+ * 注意在我们的文件系统中的所有代码，使用的都是逻辑块，block_get()参数是逻辑块号，
+ * block_put()参数中指定是逻辑块在内存中的结构，而涉及到逻辑块和物理块的映射的代码，
+ * 只存在于驱动，那里会把我们的逻辑块自动映射成对应的物理块再由驱动代码使用，所以物理块
+ * 对于FS代码是不可见的(和虚拟内存一样）。
+*/
+
 static int disk_fd;
 static struct super_block superblock;
 
@@ -51,6 +58,6 @@ void init_disk(const char *path)
 /* 从磁盘中读取物理块到内存中的block cache数组缓冲结构，注意这里的 
  * blockno 是物理块号，不过我们这个 FS 中的物理块号和逻辑块号是一
  * 对一的，不然需要分析逻辑块地址映射到具体的物理块 */
-struct cache_block *block_get(int blockno){
-	
+struct cache_block *block_get(int blockno)
+{
 }

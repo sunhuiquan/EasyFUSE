@@ -16,15 +16,6 @@ struct super_block // super block 在内存中的数据结构
 	uint data_block_startno;	  // data  block 开始的块号
 };
 
-struct cache_block // 缓存在内存的 cache block 结构
-{
-	uint refcnt;	 // 引用计数，到 0 的时候代表释放可重用
-	uint is_changed; // 脏页标志
-	struct cache_block *prev;
-	struct cache_block *next;
-	uint data[BLOCK_SIZE]; // 实际 block 的内容，即实际读入/写回磁盘的内容，前几个字段都是内存中才有的
-};
-
 struct inode_block // inode block 在内存中的数据结构
 {
 };
