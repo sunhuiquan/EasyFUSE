@@ -19,9 +19,6 @@ void init_block_cache_block()
 	}
 }
 
-/**
- * to do 目前这里使用的LRU机制是非常简陋的demo，基本没大有作用，等完成FS demo后再重构这里
- */
 /* 如果已经缓存，那么直接从缓存里面拿出来内存块；如果没缓存，那么取得一个空闲的内存块（之后就可以把磁盘加载到这里） */
 struct cache_block *cache_block_get(int blockno)
 {
@@ -89,4 +86,14 @@ struct cache_block *block_read(int blockno)
 		return NULL;
 	pcb->is_cache; // 磁盘内容缓冲进了内存
 	return pcb;
+}
+
+/* 把内存块的内容写到磁盘上 */
+int block_write(struct cache_block *pcb)
+{
+	// to do 注意这里要确保进程获取了内存块的锁
+	// to do 为什么不能解锁而再请求锁，而是需要一直保存锁的原因？
+	if (disk_write(pcb) == -1)
+		return -1;
+	return 0;
 }
