@@ -1,5 +1,6 @@
 #include "block_cache.h"
-// #include "disk.h"
+#include "disk.h"
+#include <stdlib.h>
 
 struct cache_list bcache;
 
@@ -18,6 +19,9 @@ void init_block_cache_block()
 	}
 }
 
+/**
+ * to do 目前这里使用的LRU机制是非常简陋的demo，基本没大有作用，等完成FS demo后再重构这里
+ */
 /* 如果已经缓存，那么直接从缓存里面拿出来；如果没缓存，那么取得一个空闲的（之后就可以再把磁盘内容读取后写到这上面） */
 struct cache_block *cache_block_get(int blockno)
 {
@@ -47,6 +51,7 @@ struct cache_block *cache_block_get(int blockno)
 		{
 			// to do 释放 cache layer 这个整体的 bcache 锁
 			// to do 获取这个 pc 内存块的锁，这样并发的时候一个时间只有一个进程能操作
+			++pc->refcnt;
 			return pc; // 缓冲命中
 		}
 
@@ -56,7 +61,16 @@ struct cache_block *cache_block_get(int blockno)
 	 * 通过 LRU 机制找到最久前分配的缓冲块释放，is_cache 变成0（无论之前是否为0），代表此时没有缓冲数据是空闲的，
 	 * 之后的其他函数可以通过 is_cache 得知是否缓冲命中，没用命中的话然后会再从磁盘读入再变成1。
 	 */
+	for (pc = bcache.head.prev; pc != &bcache.head; pc = pc->prev)
+		if (pc->refcnt == 0)
+		{
+			// to do 释放 cache layer 这个整体的 bcache 锁
+			// to do 获取这个 pc 内存块的锁
+			pc->blockno = blockno;
+			pc->is_cache = 0;
+			pc->refcnt = 1;
+			return pc; // 返回空闲 cache 块
+		}
 
-	// to do 释放 cache layer 这个整体的 bcache 锁
-	// to do 获取这个 pc 内存块的锁
+	return NULL; // 当前内存块不够使用，返回后要么终止，要么就休眠一会再尝试
 }
