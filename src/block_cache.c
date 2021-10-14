@@ -87,5 +87,6 @@ struct cache_block *block_read(int blockno)
 	// 缓冲不命中
 	if (disk_read(pcb) == -1)
 		return NULL;
+	pcb->is_cache; // 磁盘内容缓冲进了内存
 	return pcb;
 }
