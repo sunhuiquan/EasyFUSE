@@ -29,4 +29,7 @@ void init_block_cache_block();
 /* 从磁盘中读取物理块到内存中的block cache数组缓冲结构 */
 struct cache_block *cache_block_get(int blockno);
 
+/* 把磁盘内容读到缓冲块上（通过cache_block_get，如果命中则直接返回，否则需要从文件读到得到的空闲块） */
+struct cache_block *block_read(int blockno);
+
 #endif

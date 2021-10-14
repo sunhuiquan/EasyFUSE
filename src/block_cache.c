@@ -22,7 +22,7 @@ void init_block_cache_block()
 /**
  * to do 目前这里使用的LRU机制是非常简陋的demo，基本没大有作用，等完成FS demo后再重构这里
  */
-/* 如果已经缓存，那么直接从缓存里面拿出来；如果没缓存，那么取得一个空闲的（之后就可以再把磁盘内容读取后写到这上面） */
+/* 如果已经缓存，那么直接从缓存里面拿出来内存块；如果没缓存，那么取得一个空闲的内存块（之后就可以把磁盘加载到这里） */
 struct cache_block *cache_block_get(int blockno)
 {
 	struct cache_block *pc; // pointer to cache
@@ -73,4 +73,19 @@ struct cache_block *cache_block_get(int blockno)
 		}
 
 	return NULL; // 当前内存块不够使用，返回后要么终止，要么就休眠一会再尝试
+}
+
+/* 把磁盘内容读到缓冲块上（通过cache_block_get，如果命中则直接返回，否则需要从文件读到得到的空闲块）
+ * 另外注意现在进程仍然拥有 cacle block 的锁。
+ */
+struct cache_block *block_read(int blockno)
+{
+	struct cache_block *pcb = cache_block_get(blockno);
+	if (pcb == NULL || !pcb->is_cache)
+		return pcb;
+
+	// 缓冲不命中
+	if (disk_read(pcb) == -1)
+		return NULL;
+	return pcb;
 }
