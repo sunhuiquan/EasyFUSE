@@ -6,8 +6,7 @@
 #include <sys/stat.h>
 #include <string.h>
 
-/**
- * 注意在我们的文件系统中的所有代码，使用的都是逻辑块，block_get()参数是逻辑块号，
+/* 注意在我们的文件系统中的所有代码，使用的都是逻辑块，block_get()参数是逻辑块号，
  * block_put()参数中指定是逻辑块在内存中的结构，而涉及到逻辑块和物理块的映射的代码，
  * 只存在于驱动，那里会把我们的逻辑块自动映射成对应的物理块再由驱动代码使用，所以物理块
  * 对于FS代码是不可见的(和虚拟内存一样）。
@@ -75,11 +74,10 @@ int init_disk(const char *path)
 			return -1;
 	}
 
-	// 初始化bitmap块
-	char buf[BLOCK_SIZE];
+	/* 初始化bitmap块,初始化时除了 boot block， super block， 32个 bitmap block 之外都是0，
+	 * 而之前初始化磁盘的时候已经全部清0了，所以这里只需要设1。
+	 */
 	// to do
-	if (write(disk_fd, superblock.bitmap_block_startno * BLOCK_SIZE, BLOCK_SIZE) != BLOCK_SIZE)
-		return -1;
 
 	return 0;
 }
