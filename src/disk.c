@@ -77,7 +77,14 @@ int init_disk(const char *path)
 	/* 初始化bitmap块,初始化时除了 boot block， super block， 32个 bitmap block 之外都是0，
 	 * 而之前初始化磁盘的时候已经全部清0了，所以这里只需要设1。
 	 */
-	// to do
+	char bitmap_buf[BLOCK_SIZE];
+	if (bitmap_set_or_clear(0, 1) == -1)
+		return -1;
+	if (bitmap_set_or_clear(1, 1) == -1)
+		return -1;
+	for (int i = 0; i < 32; ++i)
+		if (bitmap_set_or_clear(i + superblock.bitmap_block_startno, 1) == -1)
+			return -1;
 
 	return 0;
 }
@@ -101,4 +108,28 @@ int disk_write(struct cache_block *buf)
 		return -1;
 	if (write(disk_fd, buf->data, BLOCK_SIZE) != BLOCK_SIZE)
 		return -1;
+}
+
+/* 公式 blockno = 8192*a + 8*b + c
+ * a是32个bitmap_buf中的从0开始算的第几个，b是一个buf中从0第几个字节，c是从低位(右)开始从0读的第几个
+ */
+int bitmap_set_or_clear(int blockno, int is_set)
+{
+	char buf;
+	uint a = blockno / BIT_NUM_BLOCK;
+	blockno %= BIT_NUM_BLOCK;
+	uint b = blockno / 8;
+	uint c = blockno % 8;
+
+	if (lseek(disk_fd, BLOCK_SIZE * (superblock.bitmap_block_startno + a) + 8 * b, SEEK_SET) == -1)
+		return -1;
+	if (read(disk_fd, &buf, 1) != 1)
+		return -1;
+	if (is_set)
+		buf |= (1 << c);
+	else
+		buf &= ~(1 << c);
+	if (write(disk_fd, &buf, 1) != 1)
+		return -1;
+	return 0;
 }

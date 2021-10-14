@@ -4,6 +4,8 @@
 #include "fs.h"
 #include "block_cache.h"
 
+#define BIT_NUM_BLOCK 8192 // BLOCKSIZE * 8
+
 /* 初始化磁盘 */
 int init_disk(const char *path);
 
