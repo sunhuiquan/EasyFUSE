@@ -9,7 +9,7 @@
 struct cache_block // 逻辑块在内存中的结构
 {
 	uint blockno;	 // 磁盘逻辑块号，用来标识身份
-	uint is_free;	 // 是否空闲
+	uint is_cache;	 // 是否正在缓冲数据
 	uint refcnt;	 // 引用计数，到 0 的时候代表释放可重用
 	uint is_changed; // 脏页标志
 	struct cache_block *prev;
