@@ -1,3 +1,5 @@
+/* 这里的块缓存是对数据块进行的缓存，不含对inode的缓存 */
+
 #ifndef BLOCK_CACHE_H
 #define BLOCK_CACHE_H
 
@@ -6,7 +8,7 @@
 #define CACHE_BLOCK_NUM 100 // 缓冲的块数，这里是一个写死的值
 // 这个值并不高效，实际中应该分析机器的配置、磁盘的大小等因素而得
 
-struct cache_block // 逻辑块在内存中的结构
+struct cache_block // 数据块在内存中的结构
 {
 	uint blockno;	 // 磁盘逻辑块号，用来标识身份
 	uint is_cache;	 // 是否正在缓冲数据

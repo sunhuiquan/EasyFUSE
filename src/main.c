@@ -5,6 +5,8 @@
 
 #include <stdlib.h>
 
+#include "stat.h"
+
 /* 实现接口的函数声明 */
 static int ufs_getattr(const char *path, struct stat *stbuf);
 
@@ -18,5 +20,5 @@ int main(int argc, char *argv[])
 
 static int fuse_fs_getattr(const char *path, struct stat *stbuf)
 {
-	return -1;
+	return getattr(path, stbuf);
 }
