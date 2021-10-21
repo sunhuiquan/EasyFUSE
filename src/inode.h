@@ -3,6 +3,13 @@
 
 #include <sys/types.h>
 
+/* inode实体的文件类型(这里的文件概念是泛指，目录也是文件的一种) */
+#define T_UNUSED 0	// 通过type为0表示这个inode是空闲的
+#define T_DIR 1		// 目录文件
+#define T_FILE 2	// 普通文件
+#define T_DEVICE 3	// 设备文件
+#define T_SYMLINK 4 // 符号文件
+
 /* 一个物理块的大小是1024B，为了对齐且大小适中，我们采用的磁盘上的 struct disk_inode_block 大小为 64B */
 
 /* inode块实际在磁盘物理块中存储的数据形式 */
@@ -25,8 +32,9 @@ struct disk_inode_block
 struct inode_block
 {
 	uint dev;  // 包含了主设备和次设备的信息，意思是可以用major()和minor()宏提取major和minor字段
-	uint inum; // 在inode缓存的inode块号，用于标识inode缓存的inode块(可以理解成id)
-	int ref;   // inode缓存的引用计数
+	uint inum; // inode号，实际是在磁盘物理块上的inode的位次
+	//（可以通过inum得到磁盘上这个disk_inode所在的实际物理块和在块内的实际偏移量）
+	int ref; // inode缓存的引用计数
 	// to do 加锁
 	int valid; // 是否已加载入inode缓存
 
