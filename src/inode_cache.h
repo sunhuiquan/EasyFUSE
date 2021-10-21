@@ -5,5 +5,12 @@
 
 #include "inode.h"
 
+#define CACHE_INODE_NUM 50
+
+struct inode_cache
+{
+	// to do 加锁
+	struct inode inodes[CACHE_INODE_NUM];
+};
 
 #endif

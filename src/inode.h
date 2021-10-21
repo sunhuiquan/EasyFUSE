@@ -2,13 +2,9 @@
 #define INODE_H
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
 /* inode实体的文件类型(这里的文件概念是泛指，目录也是文件的一种) */
-#define T_UNUSED 0	// 通过type为0表示这个inode是空闲的
-#define T_DIR 1		// 目录文件
-#define T_FILE 2	// 普通文件
-#define T_DEVICE 3	// 设备文件
-#define T_SYMLINK 4 // 符号文件
 
 /* 一个物理块的大小是1024B，为了对齐且大小适中，我们采用的磁盘上的 struct disk_inode_block 大小为 64B */
 
