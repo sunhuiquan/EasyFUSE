@@ -19,15 +19,16 @@ struct disk_inode_block
 
 /**
  * inode块在内存中的存储形式，里面的dinode就是从磁盘物理块读出对应struct
- * disk_inode_block结构的磁盘上的数据，另外一些是在管理文件系统的辅助信息
+ * disk_inode_block结构的磁盘上的数据，另外一些是在管理文件系统的辅助信息,
+ * 在内存中的形式是inode cache，和之前实现的数据块cache原理一样。
  */
 struct inode_block
 {
-	uint dev; // 包含了主设备和次设备的信息，意思是可以用major()和minor()宏提取major和minor字段
-	uint inum;
-	int ref;
+	uint dev;  // 包含了主设备和次设备的信息，意思是可以用major()和minor()宏提取major和minor字段
+	uint inum; // 在inode缓存的inode块号，用于标识inode缓存的inode块(可以理解成id)
+	int ref;   // inode缓存的引用计数
 	// to do 加锁
-	int valid;
+	int valid; // 是否已加载入inode缓存
 
 	struct disk_inode_block dinode; // inode的实际存储的数据信息(同样也是存在磁盘上的)
 };
