@@ -1,5 +1,5 @@
-#ifndef STAT_H
-#define STAT_H
+#ifndef FUSE_FS_STAT_H
+#define FUSE_FS_STAT_H
 
 // #include <sys/types.h>
 
