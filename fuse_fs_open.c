@@ -17,13 +17,39 @@ int create(char *path, ushort type)
 	// to do
 }
 
-struct inode *find_dir_inode(const char *path, char *basename)
+struct inode *find_dir_inode(char *path, char *name)
 {
-	struct inode *pinode = iget(ROOT_INODE);
+	struct inode *pinode, *next;
 	if (pinode == NULL)
 		return NULL;
 
-	// to do
+	pinode = iget(ROOT_INODE);
+	while ((path = current_dir_name(path, name)) != NULL)
+	{
+		// name 是当前层的中间name
+		// 路径中间的一个name不是目录文件，错误
+		if (pinode->dinode.type != FILE_DIR)
+		{
+			// to do iput 降低iget获取的缓存块的引用计数
+			return NULL;
+		}
+
+		// 在name为最后一个文件名的时候进入，在下一个 dir_find 前 return 了，返回的是所在目录的inode，如果不中途返回那么 dir_find 这个 name 就是返回该文件的 inode
+		if (*path == '\0')
+		{
+			return pinode;
+		}
+
+		// 查找目录项，通过已有的该目录下的 inode 获取对应 name 的 inode
+		if ((next = dir_find(pinode,name)) == NULL)
+		{
+			// 找不到该 name 对应的目录项，错误
+			// to do iput 降低iget获取的缓存块的引用计数
+			return NULL;
+		}
+		pinode = next;
+	}
+	return pinode;
 }
 
 struct inode *iget(uint inum)
@@ -56,8 +82,8 @@ struct inode *iget(uint inum)
 /* 获取当前层(比如中间的路径名，直到最后的文件名)的路径名
  *
  * example: "" 	   => NULL
- * 			"/a/"  => path:"a" name""
- * 			"/a/b" => path:"a" name:"b"
+ * 			"/a/"  => path:""  name"a"
+ * 			"/a/b" => path:"b" name:"b"
  * (多余的 '/' 不影响结果，最后如果是 '/' 会忽略，不会当成路径)
  */
 char *current_dir_name(char *path, char *name)
