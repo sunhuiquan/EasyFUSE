@@ -1,5 +1,6 @@
 #include "disk.h"
 #include "util.h"
+#include "inode.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -103,6 +104,30 @@ int init_disk(const char *path)
 
 	// ======================================================================================
 	// 4.写入根目录到磁盘，别忘了这里也要设置bitmap，用我们下面写的函数实现
+	struct disk_inode dinode;
+	dinode.type = FILE_DIR;
+	dinode.size = BLOCK_SIZE;
+	dinode.nlink = 1;
+	dinode.addrs[0] = superblock.data_block_startno;
+	if (lseek(disk_fd, superblock.inode_block_startno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
+		return -1;
+	if (write(disk_fd, &dinode, sizeof(struct disk_inode)) != sizeof(struct disk_inode))
+		return -1;
+	// if (bitmap_set_or_clear(superblock.inode_block_startno, 1) == -1)
+	// 	return -1;
+
+	struct dirent dir;
+	dir.inum = 0;
+	strncpy(dir.name, ".", MAX_NAME);
+	if (lseek(disk_fd, superblock.data_block_startno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
+		return -1;
+	if (write(disk_fd, &dir, sizeof(struct dirent)) != sizeof(struct dirent))
+		return -1;
+	strncpy(dir.name, "..", MAX_NAME);
+	if (write(disk_fd, &dir, sizeof(struct dirent)) != sizeof(struct dirent))
+		return -1;
+	if (bitmap_set_or_clear(superblock.data_block_startno, 1) == -1)
+		return -1;
 
 	return 0;
 }
