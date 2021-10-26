@@ -31,6 +31,20 @@ int init_disk(const char *path)
 	if (real_size <= 256 * BLOCK_SIZE) // 避免过小导致下面的计数舍入出错，256个块是随便取一个最小值
 		return -1;
 
+	// ======================================================================================
+	// 1.清零磁盘设备文件
+	for (int i = 0; i < real_size / BLOCK_SIZE; ++i)
+	{
+		if (read(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
+			return -1;
+		memset(temp, 0, BLOCK_SIZE);
+		if (write(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
+			return -1;
+	}
+
+	// ======================================================================================
+	// 2.设置superblock，最后写入磁盘
+
 	/* 现在未加入日志支持，无logging layer的情况
 	 * 0          | 1           | 2 ...        | 2+inode块数  | 34+block块数 ...
 	 * boot block | super block | inode blocks | bitmap blocks | data blocks
@@ -49,12 +63,6 @@ int init_disk(const char *path)
 	 * 16个，所以 inode block 和数据块比例是1比16。
 	 * 这个分析是假定全是小文件，假定 inode 所需要最多的情况。
 	 */
-	superblock.inode_block_startno = 2;
-	superblock.inode_block_num = (superblock.block_num - 34) / 17; // 1 : 16 的比例
-
-	superblock.bitmap_block_startno = 2 + superblock.inode_block_num;
-	superblock.data_block_startno = 32 + superblock.bitmap_block_startno;
-	superblock.data_block_num = superblock.block_num - 34 - superblock.inode_block_num;
 
 	/* 和 ext4 不同的是，ext4 使用块组的概念，同时一个块组只有一个 bitmap 块，而我们的文件系统
 	 * 不涉及块组的概念，所以 bitmap 块需要多一些才能让文件系统支持的足够大。
@@ -64,15 +72,20 @@ int init_disk(const char *path)
 	 * bitmap块，我们这里使用了32个 bitmap block，能表示 256MB 的文件系统。
 	 */
 
-	// 初始化磁盘设备，只初始化用到的那些物理块即可
-	for (int i = 0; i < superblock.block_num; ++i)
-	{
-		if (read(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
-			return -1;
-		memset(temp, 0, BLOCK_SIZE);
-		if (write(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
-			return -1;
-	}
+	superblock.inode_block_startno = 2;
+	superblock.inode_block_num = (superblock.block_num - 34) / 17; // 1 : 16 的比例
+	superblock.bitmap_block_startno = 2 + superblock.inode_block_num;
+	superblock.bitmap_block_num = 32;
+	superblock.data_block_startno = 32 + superblock.bitmap_block_startno;
+	superblock.data_block_num = superblock.block_num - 34 - superblock.inode_block_num;
+
+	if (lseek(disk_fd, 1 * BLOCK_SIZE, SEEK_SET) == -1)
+		return -1;
+	if (write(disk_fd, &superblock, sizeof(superblock)) != sizeof(superblock))
+		return -1;
+
+	// ======================================================================================
+	// 3.设置bitmap块，并最后写入磁盘
 
 	/* 初始化bitmap块,初始化时除了 boot block， super block， 32个 bitmap block 之外都是0，
 	 * 而之前初始化磁盘的时候已经全部清0了，所以这里只需要设1。
@@ -85,6 +98,9 @@ int init_disk(const char *path)
 	for (int i = 0; i < 32; ++i)
 		if (bitmap_set_or_clear(i + superblock.bitmap_block_startno, 1) == -1)
 			return -1;
+
+	// ======================================================================================
+	// 4.写入根目录到磁盘，别忘了这里也要设置bitmap，用我们下面写的函数实现
 
 	return 0;
 }

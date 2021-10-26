@@ -12,13 +12,10 @@ struct super_block // super block 在内存中的数据结构
 	uint block_num;			   // block 总数
 	uint inode_block_num;	   // inode block 总数
 	uint data_block_num;	   // data  block 总数
+	uint bitmap_block_num;	   // bitmap  block 总数
 	uint inode_block_startno;  // inode block 开始的块号
 	uint data_block_startno;   // data  block 开始的块号
 	uint bitmap_block_startno; // bitmap block 块号
-};
-
-struct inode_block // inode block 在内存中的数据结构
-{
 };
 
 #endif

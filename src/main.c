@@ -5,7 +5,7 @@
 
 #include <stdlib.h>
 
-#include "stat.h"
+#include "fuse_fs_stat.h"
 
 /* 实现接口的函数声明 */
 static int ufs_getattr(const char *path, struct stat *stbuf);
