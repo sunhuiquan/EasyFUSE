@@ -18,4 +18,11 @@ struct super_block // super block 在内存中的数据结构
 	uint bitmap_block_startno; // bitmap block 块号
 };
 
+#define MAX_NAME 14 // 路径名最大长度
+
+struct dirent{
+	ushort inum;
+	char name[MAX_NAME];
+};
+
 #endif

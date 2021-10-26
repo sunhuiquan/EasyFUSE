@@ -9,6 +9,8 @@
 #define FILE_SYM 3
 #define FILE_DEV 4
 
+#define ROOT_INODE 0 // 根路径所在的inode号为0，即第一个inode
+
 /* inode实体的文件类型(这里的文件概念是泛指，目录也是文件的一种) */
 
 /* 一个物理块的大小是1024B，为了对齐且大小适中，我们采用的磁盘上的 struct disk_inode_block 大小为 64B */

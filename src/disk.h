@@ -6,12 +6,6 @@
 
 #define BIT_NUM_BLOCK 8192 // BLOCKSIZE * 8
 
-#define MAX_NAME 14
-struct dirent{
-	ushort inum;
-	char name[MAX_NAME];
-};
-
 /* 初始化磁盘 */
 int init_disk(const char *path);
 
