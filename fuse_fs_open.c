@@ -41,7 +41,7 @@ struct inode *find_dir_inode(char *path, char *name)
 		}
 
 		// 查找目录项，通过已有的该目录下的 inode 获取对应 name 的 inode
-		if ((next = dir_find(pinode,name)) == NULL)
+		if ((next = dir_find(pinode, name)) == NULL)
 		{
 			// 找不到该 name 对应的目录项，错误
 			// to do iput 降低iget获取的缓存块的引用计数
@@ -109,4 +109,28 @@ char *current_dir_name(char *path, char *name)
 	while (*path == '/')
 		path++;
 	return path;
+}
+
+/*!
+ * 通过目录 inode 查找该目录下对应 name 的 inode 并返回
+ *
+ * \param pdi A pointer to current directory inode.
+ */
+struct inode *dir_find(struct inode *pdi, char *name)
+{
+	struct dirent dirent;
+
+	if (pdi->dinode.type != FILE_DIR)
+		return NULL;
+
+	uint sz = pdi->dinode.size;
+	for (uint off = 0; off < sz; off += sizeof(struct dirent))
+	{
+		// if(readi()){ 	// to do 读inode的内容
+		// 	return NULL;
+		// }
+		if (dirent.inum != 0 && !strncmp(dirent.name, name, MAX_NAME))
+			return iget(dirent.inum);
+	}
+	return NULL;
 }
