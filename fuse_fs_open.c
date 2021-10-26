@@ -126,11 +126,23 @@ struct inode *dir_find(struct inode *pdi, char *name)
 	uint sz = pdi->dinode.size;
 	for (uint off = 0; off < sz; off += sizeof(struct dirent))
 	{
-		// if(readi()){ 	// to do 读inode的内容
-		// 	return NULL;
-		// }
+		if (readinode(pdi, &dirent, off, sizeof(struct dirent)) != sizeof(struct dirent))
+			return NULL;
 		if (dirent.inum != 0 && !strncmp(dirent.name, name, MAX_NAME))
 			return iget(dirent.inum);
 	}
 	return NULL;
+}
+
+int readinode(struct inode *pi, void *dst, uint off, uint n)
+{
+	if (n <= 0 || off > pi->dinode.size)
+		return -1;
+	if (off + n > pi->dinode.size)
+		n = pi->dinode.size - off;
+
+	int readn = 0;
+	// to do
+
+	return readn;
 }
