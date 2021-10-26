@@ -15,4 +15,7 @@ int disk_read(struct cache_block *buf);
 /* 把内存块的内容写到磁盘上 */
 int disk_write(struct cache_block *buf);
 
+/* 设置或清除对于磁盘块的bitmap位标志 */
+int bitmap_set_or_clear(int blockno, int is_set);
+
 #endif

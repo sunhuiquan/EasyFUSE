@@ -35,6 +35,6 @@ struct cache_block *cache_block_get(int blockno);
 struct cache_block *block_read(int blockno);
 
 /* 把内存块的内容写到磁盘上 */
-int block_write(struct cache_block *pcb)
+int block_write(struct cache_block *pcb);
 
 #endif
