@@ -8,20 +8,16 @@
 
 int create(char *path, ushort type)
 {
-	struct inode *dir_inode; // 所在上级目录的inode
-	char dir_name[MAX_NAME], file_name[MAX_NAME];
+	struct inode *dir_pinode; // 所在上级目录的inode
+	char basename[MAX_NAME];
 
-	// !!! to do 这里是不可重入的函数，会产生竞争条件，之后别忘了改
-	strncpy(dir_name, dirname(path), MAX_NAME);
-	strncpy(file_name, basename(path), MAX_NAME);
-
-	if ((dir_inode = find_dir_inode(dir_name)) == NULL)
+	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
 		return -1;
 
 	// to do
 }
 
-struct inode *find_dir_inode(const char *dirname)
+struct inode *find_dir_inode(const char *path, char *basename)
 {
 	struct inode *pinode = iget(ROOT_INODE);
 	if (pinode == NULL)
@@ -55,4 +51,36 @@ struct inode *iget(uint inum)
 	pempty->ref = 1;
 	// 对 icache 释放锁
 	return pempty;
+}
+
+/* 获取当前层(比如中间的路径名，直到最后的文件名)的路径名
+ *
+ * example: "" 	   => NULL
+ * 			"/a/"  => path:"a" name""
+ * 			"/a/b" => path:"a" name:"b"
+ * (多余的 '/' 不影响结果，最后如果是 '/' 会忽略，不会当成路径)
+ */
+char *current_dir_name(char *path, char *name)
+{
+	char *s;
+	int len;
+
+	while (*path == '/')
+		path++;
+	if (*path == 0) // 空字符串错误
+		return NULL;
+	s = path;
+	while (*path != '/' && *path != 0)
+		path++;
+	len = path - s;
+	if (len >= MAX_NAME)
+		memmove(name, s, MAX_NAME);
+	else
+	{
+		memmove(name, s, len);
+		name[len] = 0;
+	}
+	while (*path == '/')
+		path++;
+	return path;
 }
