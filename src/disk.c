@@ -85,15 +85,15 @@ int init_disk(const char *path)
 		return -1;
 
 	// ======================================================================================
-	// 3.设置bitmap块，并最后写入磁盘
+	// 3.设置bitmap块，我们的bitmap_set_or_clear实现是没有缓存中间层，直接读写磁盘的
 
 	/* 初始化bitmap块,初始化时除了 boot block， super block， 32个 bitmap block 之外都是0，
 	 * 而之前初始化磁盘的时候已经全部清0了，所以这里只需要设1。
 	 */
 	char bitmap_buf[BLOCK_SIZE];
-	if (bitmap_set_or_clear(0, 1) == -1)
+	if (bitmap_set_or_clear(0, 1) == -1) // 设置boot块的bitmap位为1
 		return -1;
-	if (bitmap_set_or_clear(1, 1) == -1)
+	if (bitmap_set_or_clear(1, 1) == -1) // 设置superblock块的bitmap位为1
 		return -1;
 	for (int i = 0; i < 32; ++i)
 		if (bitmap_set_or_clear(i + superblock.bitmap_block_startno, 1) == -1)
@@ -127,7 +127,12 @@ int disk_write(struct cache_block *buf)
 }
 
 /* 公式 blockno = 8192*a + 8*b + c
- * a是32个bitmap_buf中的从0开始算的第几个，b是一个buf中从0第几个字节，c是从低位(右)开始从0读的第几个
+ * a是32个bitmap_buf中的从0开始算的第几个，b是一个buf中从0第几个字节，c是从低位(右)开始从0读的第
+ * 几个。
+ * 
+ * 注意非常重要的是，对于bitmap，为了方便我们直接读写磁盘设备，而没有中间层cache这32个bitmap块，因为
+ * 实在是太麻烦了，不过只有查找空闲的磁盘块才用得到，也就是实际分配新的数据块的时候，而新建文件的频
+ * 率并不是太多，可以接受这个效率(修改、查看文件(含目录文件等各种文件)都和这个无关)。
  */
 int bitmap_set_or_clear(int blockno, int is_set)
 {
