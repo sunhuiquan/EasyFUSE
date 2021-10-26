@@ -134,15 +134,32 @@ struct inode *dir_find(struct inode *pdi, char *name)
 	return NULL;
 }
 
+// 读 inode 里面的数据，实际上是通过 inode 得到对应偏移量的地址的数据块，然后读数据块
 int readinode(struct inode *pi, void *dst, uint off, uint n)
 {
+	uint blockno;
+
 	if (n <= 0 || off > pi->dinode.size)
 		return -1;
 	if (off + n > pi->dinode.size)
 		n = pi->dinode.size - off;
 
 	int readn = 0;
-	// to do
+	for (;;)
+	{
+		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
+			return -1;
+		// to do
+	}
 
 	return readn;
+}
+
+#define FILE_SIZE_MAX ((12 + 256) * BLOCK_SIZE))
+
+int get_data_blockno_by_inode(struct inode *pi, uint off)
+{
+	if (off < 0 || off > FILE_SIZE_MAX)
+		return -1;
+	return -1;
 }
