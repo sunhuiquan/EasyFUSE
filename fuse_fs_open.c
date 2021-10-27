@@ -140,34 +140,25 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 {
 	uint blockno;
 	struct cache_block *bbuf;
+	int readn, len;
 
 	if (n <= 0 || off > pi->dinode.size)
 		return -1;
 	if (off + n > pi->dinode.size)
 		n = pi->dinode.size - off;
 
-	// for (tot = 0; tot < n; tot += m, off += m, dst += m)
-	// {
-	// 	bp = bread(ip->dev, bmap(ip, off / BSIZE));
-	// 	m = min(n - tot, BSIZE - off % BSIZE);
-	// 	if (either_copyout(user_dst, dst, bp->data + (off % BSIZE), m) == -1)
-	// 	{
-	// 		brelse(bp);
-	// 		tot = -1;
-	// 		break;
-	// 	}
-	// 	brelse(bp);
-	// }
-
-	int readn = 0;
-	for (;;)
+	for (readn = 0; readn < n; readn += len, off += len, dst += len)
 	{
+		// 得到所在偏移量所在的块，并读到缓存
 		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
 			return -1;
 		if ((bbuf = block_read(blockno)) == NULL)
 			return -1;
+		// 拷贝具体的该块内的偏移量的数据
+		len = min(n - readn, BLOCK_SIZE - off % BLOCK_SIZE);
+		memmove((char *)dst, bbuf->data + (off % BLOCK_SIZE), len);
 	}
-
+	// 释放 bbuf 锁，在 get_data_blockno_by_inode 内部加的
 	return readn;
 }
 
