@@ -139,18 +139,33 @@ struct inode *dir_find(struct inode *pdi, char *name)
 int readinode(struct inode *pi, void *dst, uint off, uint n)
 {
 	uint blockno;
+	struct cache_block *bbuf;
 
 	if (n <= 0 || off > pi->dinode.size)
 		return -1;
 	if (off + n > pi->dinode.size)
 		n = pi->dinode.size - off;
 
+	// for (tot = 0; tot < n; tot += m, off += m, dst += m)
+	// {
+	// 	bp = bread(ip->dev, bmap(ip, off / BSIZE));
+	// 	m = min(n - tot, BSIZE - off % BSIZE);
+	// 	if (either_copyout(user_dst, dst, bp->data + (off % BSIZE), m) == -1)
+	// 	{
+	// 		brelse(bp);
+	// 		tot = -1;
+	// 		break;
+	// 	}
+	// 	brelse(bp);
+	// }
+
 	int readn = 0;
 	for (;;)
 	{
 		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
 			return -1;
-		// to do
+		if ((bbuf = block_read(blockno)) == NULL)
+			return -1;
 	}
 
 	return readn;
@@ -183,6 +198,8 @@ int get_data_blockno_by_inode(struct inode *pi, uint off)
 		if ((blockno = pi->dinode.addrs[NDIRECT]) == 0)
 			blockno = pi->dinode.addrs[NDIRECT] = balloc();
 		bbuf = block_read(blockno); // 读数据块
+		if (bbuf == NULL)
+			return -1;
 
 		indirect_addrs = (uint *)bbuf->data;
 		// 这里转成 uint 数组形式的作用是，这样通过下标得到的地址就是 index * sizeof(struct uint) 了，要不然你要手动 *4 因为原本是 char 数组的形式
