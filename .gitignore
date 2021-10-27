@@ -1,3 +1,5 @@
 .vscode
 *.o
 remain.md
+main
+libfuse

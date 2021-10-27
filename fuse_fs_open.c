@@ -206,7 +206,44 @@ int get_data_blockno_by_inode(struct inode *pi, uint off)
 	return -1;
 }
 
+// static uint
+// balloc2(uint dev)
+// {
+// 	int b, bi, m;
+// 	struct buf *bp;
+
+// 	bp = 0;
+// 	for (b = 0; b < sb.size; b += BPB)
+// 	{
+// 		bp = bread(dev, BBLOCK(b, sb));
+// 		for (bi = 0; bi < BPB && b + bi < sb.size; bi++)
+// 		{
+// 			m = 1 << (bi % 8);
+// 			if ((bp->data[bi / 8] & m) == 0)
+// 			{						   // Is block free?
+// 				bp->data[bi / 8] |= m; // Mark block in use.
+// 				log_write(bp);
+// 				brelse(bp);
+// 				bzero(dev, b + bi);
+// 				return b + bi;
+// 			}
+// 		}
+// 		brelse(bp);
+// 	}
+// 	panic("balloc: out of blocks");
+// }
+
+extern struct super_block superblock;
 // int balloc() 通过 bitmap 获取一个空的数据块号
 int balloc()
 {
+	struct cache_block *bbuf;
+	for (int i = 0; i < superblock.bitmap_block_num; ++i) // bitmap块号，共32个
+	{
+		if ((bbuf = block_read(superblock.bitmap_block_startno + i)) == NULL)
+			return -1;
+		for (int j = 0;;)
+		{
+		}
+	}
 }
