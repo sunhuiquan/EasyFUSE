@@ -160,7 +160,7 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 
 int get_data_blockno_by_inode(struct inode *pi, uint off)
 {
-	uint addr; // 数据块号
+	uint blockno; // 数据块号
 	struct cache_block *bbuf;
 	uint *indirect_addrs;
 
@@ -170,30 +170,35 @@ int get_data_blockno_by_inode(struct inode *pi, uint off)
 	int boff = off / BLOCK_SIZE; // 得到是第几个数据块（数据块偏移量）
 	if (boff < NDIRECT)			 // 直接指向
 	{
-		if ((addr = pi->dinode.addrs[boff]) == 0)
+		if ((blockno = pi->dinode.addrs[boff]) == 0)
 			// 对应的地址未指向数据块，则分配一个并返回
-			addr = pi->dinode.addrs[boff] = balloc();
-		return addr;
+			blockno = pi->dinode.addrs[boff] = balloc();
+		return blockno;
 	}
 	boff -= NDIRECT;
 
 	// 我们用 uint 作为块号的单位，所以是 BLOCK_SIZE / sizeof(uint)
 	if (boff < (NINDIRECT * (BLOCK_SIZE / sizeof(uint)))) // 二级引用
 	{
-		if ((addr = pi->dinode.addrs[NDIRECT]) == 0)
-			addr = pi->dinode.addrs[NDIRECT] = balloc();
-		bbuf = bread(addr); // 读数据块
+		if ((blockno = pi->dinode.addrs[NDIRECT]) == 0)
+			blockno = pi->dinode.addrs[NDIRECT] = balloc();
+		bbuf = block_read(blockno); // 读数据块
 
 		indirect_addrs = (uint *)bbuf->data;
 		// 这里转成 uint 数组形式的作用是，这样通过下标得到的地址就是 index * sizeof(struct uint) 了，要不然你要手动 *4 因为原本是 char 数组的形式
-		if ((addr = indirect_addrs[boff]) == 0)
+		if ((blockno = indirect_addrs[boff]) == 0)
 		{
 			// 对应的地址未指向数据块，则分配一个并返回
-			addr = indirect_addrs[boff] = balloc();
+			blockno = indirect_addrs[boff] = balloc();
 		}
-		// brelse(bp);
-		return addr;
+		// brelse(bbuf);
+		return blockno;
 	}
 
 	return -1;
+}
+
+// int balloc() 通过 bitmap 获取一个空的数据块号
+int balloc()
+{
 }
