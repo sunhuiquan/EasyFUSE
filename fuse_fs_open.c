@@ -155,11 +155,41 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 	return readn;
 }
 
-#define FILE_SIZE_MAX ((12 + 256) * BLOCK_SIZE))
+#define FILE_SIZE_MAX ((12 + 256) * BLOCK_SIZE)
 
 int get_data_blockno_by_inode(struct inode *pi, uint off)
 {
 	if (off < 0 || off > FILE_SIZE_MAX)
 		return -1;
+
+	uint addr; // 数据块号
+
+	uint *a;
+	struct buf *bp;
+
+	int boff = off / BLOCK_SIZE; // 得到是第几个数据块（数据块偏移量）
+	if (boff < NDIRECT)			 // 直接指向
+	{
+		if ((addr = pi->dinode.addrs[boff]) == 0)
+			// 对应的地址未指向数据块，则分配一个并返回
+			addr = pi->dinode.addrs[boff] = balloc();
+		return addr;
+	}
+
+	// if (boff == NDIRECT) // 二级引用
+	// {
+	// 	if ((addr = addr = pi->dinode.addrs[NDIRECT]) == 0)
+	// 		// ip->addrs[NDIRECT] = addr = balloc(ip->dev);
+	// 		bp = bread(ip->dev, addr);
+	// 	a = (uint *)bp->data;
+	// 	if ((addr = a[boff]) == 0)
+	// 	{
+	// 		a[boff] = addr = balloc(ip->dev);
+	// 		log_write(bp);
+	// 	}
+	// 	brelse(bp);
+	// 	return addr;
+	// }
+
 	return -1;
 }
