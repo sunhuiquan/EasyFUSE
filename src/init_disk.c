@@ -9,7 +9,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-static int disk_fd;
+extern int disk_fd;
 
 /* 格式化磁盘，这个操作只在第一次安装(不是启动)fuse fs需要，或是文件系统崩溃，重新格式化的时候需要使用 */
 static int init_disk(const char *path)
