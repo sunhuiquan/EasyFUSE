@@ -287,20 +287,21 @@ int inode_lock(struct inode *pi)
 /* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回 */
 struct inode *inode_allocate(ushort type)
 {
+	uint i, j;
 	struct cache_block *bbuf;
 	struct disk_inode *pdi;
 
 	uint end = superblock.inode_block_startno + superblock.inode_block_num;
-	for (uint i = superblock.inode_block_startno; i < end; ++i)
+	for (i = superblock.inode_block_startno; i < end; ++i)
 	{
 		if ((bbuf = cache_block_get(i)) == NULL)
 			return NULL;
 
 		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
-		for (pdi = (struct disk_inode *)bbuf->data; pdi < &bbuf->data[BLOCK_SIZE]; ++pdi)
+		for (j = 0, pdi = (struct disk_inode *)bbuf->data; pdi < &bbuf->data[BLOCK_SIZE]; ++j, ++pdi)
 		{
 			if (pdi->type == 0)
-				return pdi;
+				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
 		}
 		// to do 释放 bbuf
 	}
