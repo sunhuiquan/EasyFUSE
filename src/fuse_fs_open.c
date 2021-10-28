@@ -7,6 +7,7 @@
 #include <string.h>
 #include <libgen.h>
 #include <sys/types.h>
+#include <pthread.h>
 
 struct inode *create(char *path, ushort type)
 {
@@ -322,9 +323,23 @@ int inode_load(struct inode *pi)
  */
 int inode_lock(struct inode *pi)
 {
-	// to do 加锁
-	inode_load(pi);
-	return -1;
+	if (pi == NULL || pi->ref < 1)
+		return -1;
+
+	if (pthread_mutex_lock(&pi->inode_lock) != 0) // 加锁
+		return -1;
+
+	// 在加锁后，避免竞争导致多次 inode_load 的错误
+	return inode_load(pi);
+}
+
+int inode_unlock(struct inode *pi)
+{
+	if (pi == NULL || pi->ref < 1)
+		return -1;
+	if (pthread_mutex_unlock(&pi->inode_lock) != 0)
+		return -1;
+	return 0;
 }
 
 /* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回 */
@@ -369,7 +384,7 @@ int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
 		if (dir.inum == 0)
 			break;
 	}
-	
+
 	strncpy(dir.name, name, MAX_NAME);
 	dir.inum = inum;
 	if (writeinode(pdi, &dir, off, sizeof(struct dirent)) != sizeof(struct dirent))

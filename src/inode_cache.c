@@ -10,13 +10,14 @@ int inode_cache_init()
 	// 初始化单个inode结构的锁，注意这个锁是对应于一个内存中的inode结构实体说的，意思是这个
 	// 和inode的内容无关，也就是引用计数减到0被重用了，这个锁结构也不会destroy，而是一直存在
 	// 只有当整个程序结束才释放这个互斥锁
-	int e;
 	for (int i = 0; i < CACHE_INODE_NUM; ++i)
-		if ((e = pthread_mutex_init(&icache.inodes[i].inode_lock, NULL)) != 0)
-			return e;
+		if (pthread_mutex_init(&icache.inodes[i].inode_lock, NULL) != 0)
+			return -1;
 
 	// 初始化整个inode cache的锁
-	return pthread_mutex_init(&icache.cache_lock, NULL);
+	if (pthread_mutex_init(&icache.cache_lock, NULL) != 0)
+		return -1;
+	return 0;
 }
 
 /**
