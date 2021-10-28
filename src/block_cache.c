@@ -5,8 +5,10 @@
 struct cache_list bcache;
 
 /* 初始化缓存块结构 */
-void init_block_cache_block()
+int init_block_cache_block()
 {
+	int e;
+
 	// 初始化用于 LRU 的双向链表
 	bcache.head.prev = &bcache.head;
 	bcache.head.next = &bcache.head;
@@ -16,7 +18,13 @@ void init_block_cache_block()
 		bcache.bcaches[i].prev = &bcache.head;
 		bcache.head.next->prev = &bcache.bcaches[i];
 		bcache.head.next = &bcache.bcaches[i];
+
+		if ((e = pthread_mutex_init(&bcache.bcaches[i].cache_lock, NULL)) != 0) // 初始化单个数据块结构的锁
+			return e;
 	}
+
+	// 初始化整个数据块缓存的锁
+	return pthread_mutex_init(&bcache.cache_lock, NULL);
 }
 
 /* 如果已经缓存，那么直接从缓存里面拿出来内存块；如果没缓存，那么取得一个空闲的内存块（之后就可以把磁盘加载到这里） */

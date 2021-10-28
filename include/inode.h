@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <pthread.h>
 
 #define FILE_FREE 0
 #define FILE_DIR 1
@@ -38,12 +39,11 @@ struct disk_inode
  */
 struct inode
 {
-	uint dev;  // 包含了主设备和次设备的信息，意思是可以用major()和minor()宏提取major和minor字段
-	uint inum; // inode号，实际是在磁盘物理块上的inode的位次
-	//（可以通过inum得到磁盘上这个disk_inode所在的实际物理块和在块内的实际偏移量）
-	int ref; // inode缓存的引用计数
-	// to do 加锁
-	int valid; // 是否已加载入inode缓存
+	uint dev;					// 包含了主设备和次设备的信息，意思是可以用major()和minor()宏提取major和minor字段
+	uint inum;					// inode号，实际是在磁盘物理块上的inode的位次（即磁盘数的第几个inode结构）
+	int ref;					// inode缓存的引用计数
+	int valid;					// 是否已加载入inode缓存
+	pthread_mutex_t inode_lock; // pthread互斥锁对单个内存中的 inode 结构加锁
 
 	struct disk_inode dinode; // inode的实际存储的数据信息(同样也是存在磁盘上的)
 };

@@ -4,6 +4,7 @@
 #define INODE_CACHE_H
 
 #include "inode.h"
+#include <pthread.h>
 
 extern struct inode_cache icache;
 
@@ -11,8 +12,8 @@ extern struct inode_cache icache;
 
 struct inode_cache
 {
-	// to do 加锁
-	struct inode inodes[CACHE_INODE_NUM];
+	pthread_mutex_t cache_lock; // pthread互斥锁对整个 inode 缓存结构加锁
+	struct inode inodes[CACHE_INODE_NUM]; // 缓存在内存中的真实存放位置，是一个全局变量
 };
 
 #endif

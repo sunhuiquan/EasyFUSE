@@ -4,6 +4,21 @@
 
 struct inode_cache icache;
 
+/* 初始化 inode cache 缓存，其实就是初始化它的互斥锁 */
+int inode_cache_init()
+{
+	// 初始化单个inode结构的锁，注意这个锁是对应于一个内存中的inode结构实体说的，意思是这个
+	// 和inode的内容无关，也就是引用计数减到0被重用了，这个锁结构也不会destroy，而是一直存在
+	// 只有当整个程序结束才释放这个互斥锁
+	int e;
+	for (int i = 0; i < CACHE_INODE_NUM; ++i)
+		if ((e = pthread_mutex_init(&icache.inodes[i].inode_lock, NULL)) != 0)
+			return e;
+
+	// 初始化整个inode cache的锁
+	return pthread_mutex_init(&icache.cache_lock, NULL);
+}
+
 /**
  * 返回缓存中的对应inum的inode结构，如果不命中，那么会返回对应inum的inode结构，
  * 但是此时是们没有把数据从disk_inode加载进来，valid是0
@@ -32,13 +47,14 @@ iget(uint dev, uint inum)
 
 	// 缓存不命中
 	if (empty == NULL)
-		return (void *)0;
+		return NULL;
 
 	ip = empty;
 	ip->dev = dev;
 	ip->inum = inum;
 	ip->ref = 1;
 	ip->valid = 0; // 磁盘数据未加载到cache
+
 	// to do icache解锁
 
 	return ip;
@@ -119,7 +135,6 @@ iget(uint dev, uint inum)
 // 	ip->size = 0;
 // 	iupdate(ip);
 // }
-
 
 // void iput(struct inode *ip)
 // {
