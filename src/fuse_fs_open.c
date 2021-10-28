@@ -392,3 +392,23 @@ int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
 
 	return 0;
 }
+
+// 降低引用计数，并如果硬链接数和引用计数都为0时，释放对应磁盘
+int inode_reduce_ref(struct inode *pi)
+{
+	// 我们可能要回收某一个缓存块，这个加锁是为了保证避免竞争使多次回收错误
+	if (pthread_mutex_lock(&icache.cache_lock) != 0)
+		return -1;
+
+	// 注意，如果引用计数为0说明可以回收复用缓存了，不过我们不需要在这里做任何事情，因为关于缓存的回收
+	// 是写在 iget() 里面的，那里发现 ref 为0会自动复用
+	--pi->ref;
+
+	// 如果硬链接数和引用计数都为0时，释放对应磁盘结构，不要要知道这里只释放磁盘 inode 结构，关于缓存释放是在 iget() 里面的
+	if (0)
+	{
+	}
+
+	if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+		return -1;
+}
