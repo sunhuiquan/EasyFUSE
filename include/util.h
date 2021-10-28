@@ -3,4 +3,6 @@
 
 void err_exit(const char *msg);
 
+void test_err_exit(int lineno, const char *msg);
+
 #endif

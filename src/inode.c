@@ -1,2 +1,2 @@
-#include "inode.h"
+#include "../include/inode.h"
 

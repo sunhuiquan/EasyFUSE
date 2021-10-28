@@ -1,23 +1,52 @@
-#include "fuse_fs_open.h"
-#include "inode.h"
-#include "inode_cache.h"
-#include "block_cache.h"
-#include "fs.h"
+#include "../include/fuse_fs_open.h"
+#include "../include/inode.h"
+#include "../include/inode_cache.h"
+#include "../include/block_cache.h"
+#include "../include/fs.h"
 #include <string.h>
 #include <libgen.h>
 #include <sys/types.h>
 
-int create(char *path, ushort type)
+struct inode *create(char *path, ushort type)
 {
-	struct inode *dir_pinode; // 所在上级目录的inode
+	struct inode *dir_pinode, *pinode;
 	char basename[MAX_NAME];
 
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
 		return -1;
 
-	// to do
+	// to do 对 dir_pinode 加锁
+
+	// 已存在该 name 的文件，直接返回（open的语义O_CREATE如果没有O_EXCL那么已存在就直接返回）
+	if ((pinode = dir_find(dir_pinode, basename)) != NULL)
+	{
+		// to do dir_pinode 解锁并减引用
+		// to do 加锁这里返回的 pinode
+		if (pinode->dinode.type == type)
+			return pinode;
+		// to do 解锁这里返回的 pinode
+		return NULL;
+	}
+
+	// to do 新建一个 inode 表示这个文件，然后在文件所在目录里面新建一个目录项，指向这个 inode
+	if ((pinode = anode_allocate(type)) == NULL)
+		return -1;
+
+	// to do 加锁
+	pinode->dinode.nlink = 1;
+	// to do update
+
+	if (type == FILE_DIR)
+	{
+	}
+
+	// to do if(dirlink(dp,name,ip->inum)) 添加目录项
+	// to do 解锁dp并写回磁盘
+
+	return 0;
 }
 
+// 返回路径文件所在的目录的 inode
 struct inode *find_dir_inode(char *path, char *name)
 {
 	struct inode *pinode, *next;
@@ -27,6 +56,7 @@ struct inode *find_dir_inode(char *path, char *name)
 	pinode = iget(ROOT_INODE);
 	while ((path = current_dir_name(path, name)) != NULL)
 	{
+		// to do 给 pinode 加锁
 		// name 是当前层的中间name
 		// 路径中间的一个name不是目录文件，错误
 		if (pinode->dinode.type != FILE_DIR)
@@ -246,4 +276,21 @@ int balloc()
 		{
 		}
 	}
+}
+
+#define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode)
+#define INODE_NUM(inum, sb) ((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
+
+/* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中 */
+int inode_load(struct inode *pi)
+{
+	if (pi->valid == 0)
+	{
+		struct cache_block *bbuf;
+		if ((bbuf = cache_block_get(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块
+			return -1;
+
+		return 0;
+	}
+	return 0;
 }

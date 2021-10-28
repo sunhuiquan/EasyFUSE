@@ -1,7 +1,7 @@
-#include "fs.h"
-#include "util.h"
-#include "inode.h"
-#include "disk.h"
+#include "../include/fs.h"
+#include "../include/util.h"
+#include "../include/inode.h"
+#include "../include/disk.h"
 #include <unistd.h>
 #include <string.h>
 #include <sys/stat.h>

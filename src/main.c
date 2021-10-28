@@ -13,13 +13,11 @@
 // /* 对libfuse库接口的实现 */
 // static struct fuse_operations u_operation = {.getattr = fuse_fs_getattr};
 
-#include "disk.h"
-#include "util.h"
+#include "../include/disk.h"
+#include "../include/util.h"
 
 int main(int argc, char *argv[])
 {
-	if(init_disk("./diskimg") == -1)
-		err_exit("init_disk");
 		
 	return 0;
 

@@ -1,6 +1,6 @@
-#include "disk.h"
-#include "util.h"
-#include "inode.h"
+#include "../include/disk.h"
+#include "../include/util.h"
+#include "../include/inode.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -24,7 +24,7 @@ int load_disk(const char *path)
 {
 	if ((disk_fd = open(path, O_RDWR)) == -1)
 		return -1;
-	// to do 读取superblock
+	// to do 注意这里的 superblock 加载在内存作为一个全局变量，和bcache缓冲无关，其他程序直接通过这个全局变量来访问
 
 	return 0;
 }
