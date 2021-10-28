@@ -287,10 +287,15 @@ int inode_load(struct inode *pi)
 	if (pi->valid == 0)
 	{
 		struct cache_block *bbuf;
+		struct disk_inode *dibuf;
 		if ((bbuf = cache_block_get(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块
 			return -1;
-
-		return 0;
+		// dibuf = bbur[];
+		memcpy(&pi->dinode, dibuf, sizeof(struct disk_inode));
+		// 释放 dibuf 锁
+		pi->valid = 1;
+		if (pi->dinode.type == 0) // 磁盘上对应的inode记录为未被使用
+			return -1;
 	}
 	return 0;
 }
