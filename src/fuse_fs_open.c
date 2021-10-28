@@ -16,7 +16,8 @@ struct inode *create(char *path, ushort type)
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
 		return -1;
 
-	// to do 对 dir_pinode 加锁
+	if (inode_load(dir_pinode) == -1) // to do 对 dir_pinode 加锁
+		return NULL;
 
 	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
 	if ((pinode = dir_find(dir_pinode, basename)) != NULL)
@@ -33,15 +34,24 @@ struct inode *create(char *path, ushort type)
 	if ((pinode = inode_allocate(type)) == NULL)
 		return -1;
 
-	// to do 加锁
+	if (inode_load(pinode) == -1) // to do 加锁
+		return NULL;
 	pinode->dinode.nlink = 1;
 	// to do update
 
-	if (type == FILE_DIR)
+	if (type == FILE_DIR) // 添加 . 和 .. 目录项
 	{
+		++dir_pinode->dinode.nlink; // .. 指向上一级目录
+		// No ip->nlink++ for ".": avoid cyclic ref count.??
+
+		// iupdate?
+		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
+			return -1;
 	}
 
-	// to do if(dirlink(dp,name,ip->inum)) 添加目录项
+	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
+		return -1;
+
 	// to do 解锁dp并写回磁盘
 
 	return 0;
@@ -166,14 +176,14 @@ struct inode *dir_find(struct inode *pdi, char *name)
 	return NULL;
 }
 
-// 读 inode 里面的数据，实际上是通过 inode 得到对应偏移量的地址的数据块，然后读数据块
+// 读 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后读数据块
 int readinode(struct inode *pi, void *dst, uint off, uint n)
 {
 	uint blockno;
 	struct cache_block *bbuf;
 	int readn, len;
 
-	if (n <= 0 || off > pi->dinode.size)
+	if (n < 0 || off > pi->dinode.size)
 		return -1;
 	if (off + n > pi->dinode.size)
 		n = pi->dinode.size - off;
@@ -191,6 +201,37 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 	}
 	// 释放 bbuf 锁，在 get_data_blockno_by_inode 内部加的
 	return readn;
+}
+
+#define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint)))
+// 写 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后写数据块
+int writeinode(struct inode *pi, void *src, uint off, uint n)
+{
+	uint blockno;
+	struct cache_block *bbuf;
+	int writen, len;
+
+	if (n < 0 || off > pi->dinode.size)
+		return -1;
+	if (off + n > MAX_FILE_BLOCK_NUM * BLOCK_SIZE)
+		return -1;
+
+	for (writen = 0; writen < n; writen += len, off += len, src += len)
+	{
+		// 得到所在偏移量所在的块，并读到缓存
+		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
+			return -1;
+		if ((bbuf = block_read(blockno)) == NULL)
+			return -1;
+		len = min(n - writen, BLOCK_SIZE - off % BLOCK_SIZE);
+		memmove(bbuf->data + (off % BLOCK_SIZE), src, len);
+		// to do brelse bbuf
+	}
+	if (off > pi->dinode.size)
+		pi->dinode.size = off;
+
+	// to do iupdate pinode
+	return writen;
 }
 
 #define FILE_SIZE_MAX ((12 + 256) * BLOCK_SIZE)
@@ -307,4 +348,31 @@ struct inode *inode_allocate(ushort type)
 		// to do 释放 bbuf
 	}
 	return NULL; // 磁盘上无空闲的disk inode结构了
+}
+
+int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
+{
+	struct dirent dir;
+	struct inode *pi;
+
+	if ((pi = dir_find(pdi, name)) != NULL)
+	{
+		// iput pi
+		return -1;
+	}
+
+	int off = 0;
+	for (; off < pdi->dinode.size; off += sizeof(struct dirent))
+	{
+		if (readinode(pdi, &dir, off, sizeof(struct dirent)) != sizeof(struct dirent))
+			return -1;
+		if (dir.inum == 0)
+			break;
+	}
+	strncpy(dir.name, name, MAX_NAME);
+	dir.inum = inum;
+	if (writeinode(pdi, &dir, off, sizeof(struct dirent)) != sizeof(struct dirent))
+		return -1;
+
+	return 0;
 }
