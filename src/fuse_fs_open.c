@@ -369,6 +369,7 @@ int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
 		if (dir.inum == 0)
 			break;
 	}
+	
 	strncpy(dir.name, name, MAX_NAME);
 	dir.inum = inum;
 	if (writeinode(pdi, &dir, off, sizeof(struct dirent)) != sizeof(struct dirent))
