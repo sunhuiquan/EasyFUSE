@@ -3,6 +3,7 @@
 #include "../include/inode_cache.h"
 #include "../include/block_cache.h"
 #include "../include/fs.h"
+#include "../include/disk.h"
 #include <string.h>
 #include <libgen.h>
 #include <sys/types.h>
@@ -237,7 +238,7 @@ int get_data_blockno_by_inode(struct inode *pi, uint off)
 }
 
 extern struct super_block superblock;
-// int balloc() 通过 bitmap 获取一个空的数据块号
+// int balloc() 通过 bitmap 获取一个空的数据块号，设置 bitmap 对应位为1
 int balloc()
 {
 	struct cache_block *bbuf;
@@ -245,8 +246,9 @@ int balloc()
 	{
 		if ((bbuf = block_read(superblock.bitmap_block_startno + i)) == NULL)
 			return -1;
-		for (int j = 0;;)
+		for (int j = 0; j < BLOCK_SIZE; ++j)
 		{
+			char bit = bbuf->data[j];
 		}
 	}
 }
@@ -291,14 +293,13 @@ struct inode *inode_allocate(ushort type)
 	struct cache_block *bbuf;
 	struct disk_inode *pdi;
 
-	uint end = superblock.inode_block_startno + superblock.inode_block_num;
-	for (i = superblock.inode_block_startno; i < end; ++i)
+	for (i = 0; i < superblock.inode_block_num; ++i)
 	{
-		if ((bbuf = cache_block_get(i)) == NULL)
+		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
 			return NULL;
 
 		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
-		for (j = 0, pdi = (struct disk_inode *)bbuf->data; pdi < &bbuf->data[BLOCK_SIZE]; ++j, ++pdi)
+		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
 		{
 			if (pdi->type == 0)
 				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
