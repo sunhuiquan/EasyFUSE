@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#define FILE_FREE 0
 #define FILE_DIR 1
 #define FILE_REG 2
 #define FILE_SYM 3
@@ -21,7 +22,7 @@
 
 struct disk_inode
 {
-	short type;	 // inode对应的文件的类型(普通、目录、设备、链接)
+	short type;	 // inode对应的文件的类型(普通、目录、设备、链接)，0 代表未被分配过
 	short major; // 如果是设备文件那么有major主设备号
 	short minor; // 如果是设备文件那么有minor次设备号
 	short nlink; // 硬链接数(打开文件描述指向inode)

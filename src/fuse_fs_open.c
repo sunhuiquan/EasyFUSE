@@ -17,7 +17,7 @@ struct inode *create(char *path, ushort type)
 
 	// to do 对 dir_pinode 加锁
 
-	// 已存在该 name 的文件，直接返回（open的语义O_CREATE如果没有O_EXCL那么已存在就直接返回）
+	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
 	if ((pinode = dir_find(dir_pinode, basename)) != NULL)
 	{
 		// to do dir_pinode 解锁并减引用
@@ -29,7 +29,7 @@ struct inode *create(char *path, ushort type)
 	}
 
 	// to do 新建一个 inode 表示这个文件，然后在文件所在目录里面新建一个目录项，指向这个 inode
-	if ((pinode = anode_allocate(type)) == NULL)
+	if ((pinode = inode_allocate(type)) == NULL)
 		return -1;
 
 	// to do 加锁
@@ -236,33 +236,6 @@ int get_data_blockno_by_inode(struct inode *pi, uint off)
 	return -1;
 }
 
-// static uint
-// balloc2(uint dev)
-// {
-// 	int b, bi, m;
-// 	struct buf *bp;
-
-// 	bp = 0;
-// 	for (b = 0; b < sb.size; b += BPB)
-// 	{
-// 		bp = bread(dev, BBLOCK(b, sb));
-// 		for (bi = 0; bi < BPB && b + bi < sb.size; bi++)
-// 		{
-// 			m = 1 << (bi % 8);
-// 			if ((bp->data[bi / 8] & m) == 0)
-// 			{						   // Is block free?
-// 				bp->data[bi / 8] |= m; // Mark block in use.
-// 				log_write(bp);
-// 				brelse(bp);
-// 				bzero(dev, b + bi);
-// 				return b + bi;
-// 			}
-// 		}
-// 		brelse(bp);
-// 	}
-// 	panic("balloc: out of blocks");
-// }
-
 extern struct super_block superblock;
 // int balloc() 通过 bitmap 获取一个空的数据块号
 int balloc()
@@ -278,8 +251,8 @@ int balloc()
 	}
 }
 
-#define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode)
-#define INODE_NUM(inum, sb) ((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
+#define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))
+#define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
 
 /* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中 */
 int inode_load(struct inode *pi)
@@ -290,7 +263,7 @@ int inode_load(struct inode *pi)
 		struct disk_inode *dibuf;
 		if ((bbuf = cache_block_get(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块
 			return -1;
-		// dibuf = bbur[];
+		dibuf = (struct disk_inode *)(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)]);
 		memcpy(&pi->dinode, dibuf, sizeof(struct disk_inode));
 		// 释放 dibuf 锁
 		pi->valid = 1;
@@ -298,4 +271,38 @@ int inode_load(struct inode *pi)
 			return -1;
 	}
 	return 0;
+}
+
+/* 对内存中的inode对象加锁，然后如果未加载到内存，那么将磁盘上的内容加载到内存中，
+ * 把 valid 等于0的情况判断是否加载到内存集成到加锁里面，是因为如果要操作inode的情况，
+ * 都要加锁保证原子性，这样顺便检测是否已加载入就可以了
+ */
+int inode_lock(struct inode *pi)
+{
+	// to do 加锁
+	inode_load(pi);
+	return -1;
+}
+
+/* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回 */
+struct inode *inode_allocate(ushort type)
+{
+	struct cache_block *bbuf;
+	struct disk_inode *pdi;
+
+	uint end = superblock.inode_block_startno + superblock.inode_block_num;
+	for (uint i = superblock.inode_block_startno; i < end; ++i)
+	{
+		if ((bbuf = cache_block_get(i)) == NULL)
+			return NULL;
+
+		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
+		for (pdi = (struct disk_inode *)bbuf->data; pdi < &bbuf->data[BLOCK_SIZE]; ++pdi)
+		{
+			if (pdi->type == 0)
+				return pdi;
+		}
+		// to do 释放 bbuf
+	}
+	return NULL; // 磁盘上无空闲的disk inode结构了
 }
