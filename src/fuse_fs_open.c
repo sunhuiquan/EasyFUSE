@@ -470,6 +470,8 @@ int inode_free_address(struct inode *pi)
 			return -1;
 		pi->dinode.addrs[NDIRECT] = 0;
 	}
+	pi->dinode.size = 0; // 之后要iupdate写入磁盘
+
 	return 0;
 }
 
@@ -479,4 +481,11 @@ int inode_free_address(struct inode *pi)
 int inode_update(struct inode *pi)
 {
 	// 一定要持有pi的锁
+	struct cache_block *bbuf;
+	if ((bbuf = cache_block_get(pi->inum + superblock.inode_block_startno)) == NULL)
+		return -1;
+	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
+			&pi->dinode, sizeof(struct disk_inode));
+	// to do 放入bbuf中，后面bcache会实际写入磁盘
+	// to do 释放 bbuf
 }
