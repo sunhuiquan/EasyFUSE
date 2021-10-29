@@ -485,7 +485,7 @@ int inode_update(struct inode *pi)
 	if ((bbuf = cache_block_get(pi->inum + superblock.inode_block_startno)) == NULL)
 		return -1;
 	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
-			&pi->dinode, sizeof(struct disk_inode));
-	// to do 放入bbuf中，后面bcache会实际写入磁盘
+			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
+
 	// to do 释放 bbuf
 }
