@@ -419,8 +419,32 @@ int inode_reduce_ref(struct inode *pi)
 	 */
 	if (pi->ref == 0 && pi->valid && pi->dinode.nlink == 0)
 	{
-	}
+		if (pthread_mutex_lock(&pi->inode_lock) != 0)
+			return -1;
+		// 这是因为中间不涉及对icache的操作，而且接下来的几个操作耗时间也不小，这里是为了细粒度的临界区，提高并发性
+		if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+			return -1;
 
+		inode_free_address(pi); // 释放所有inode持有的数据块，同时把addr数组清零
+		pi->dinode.type = 0;	// 让磁盘的该dionde结构可以被下次的inode_allocate分配重用
+		inode_update(pi);		// 把dinode结构写到对应磁盘
+
+		if (pthread_mutex_unlock(&pi->inode_lock) != 0)
+			return -1;
+		if (pthread_mutex_lock(&icache.cache_lock) != 0)
+			return -1;
+	}
 	if (pthread_mutex_unlock(&icache.cache_lock) != 0)
 		return -1;
+	return 0;
+}
+
+/* 释放inode所指向的所有数据块 */
+int inode_free_address(struct inode *pi)
+{
+}
+
+/* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的是指向的数据块中的数据 */
+int inode_update(struct inode *pi)
+{
 }
