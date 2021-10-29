@@ -419,10 +419,10 @@ int inode_reduce_ref(struct inode *pi)
 	 */
 	if (pi->ref == 0 && pi->valid && pi->dinode.nlink == 0)
 	{
-		if (pthread_mutex_lock(&pi->inode_lock) != 0)
-			return -1;
 		// 这是因为中间不涉及对icache的操作，而且接下来的几个操作耗时间也不小，这里是为了细粒度的临界区，提高并发性
 		if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+			return -1;
+		if (pthread_mutex_lock(&pi->inode_lock) != 0)
 			return -1;
 
 		inode_free_address(pi); // 释放所有inode持有的数据块，同时把addr数组清零
@@ -439,12 +439,44 @@ int inode_reduce_ref(struct inode *pi)
 	return 0;
 }
 
-/* 释放inode所指向的所有数据块 */
+/* 释放inode所指向的所有数据块，注意调用这个的时候一定要持有pi的锁。 */
 int inode_free_address(struct inode *pi)
 {
+	struct cache_block *bbuf;
+	uint *pui;
+
+	// 一定要持有pi的锁
+	for (int i = 0; i < NDIRECT; ++i)
+		if (pi->dinode.addrs[i])
+		{
+			if (block_free(pi->dinode.addrs[i]) == -1) // 释放数据块
+				return -1;
+			pi->dinode.addrs[i] = 0;
+		}
+
+	if (pi->dinode.addrs[NDIRECT])
+	{
+		if ((bbuf = cache_block_get(pi->dinode.addrs[NDIRECT])) == NULL)
+			return -1;
+		pui = (uint *)bbuf->data;
+		for (; pui < &bbuf->data[BLOCK_SIZE]; ++pui) // pui指向存值的地址，之后解引用即可得到值
+			if (*pui)
+			{
+				if (block_free(*pui) == -1) // 释放数据块
+					return -1;
+			}
+		// to do 释放 bbuf
+		if (block_free(pi->dinode.addrs[NDIRECT]) == -1) // 释放这个二级索引数据块
+			return -1;
+		pi->dinode.addrs[NDIRECT] = 0;
+	}
+	return 0;
 }
 
-/* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的是指向的数据块中的数据 */
+/* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的
+ * 是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
+ */
 int inode_update(struct inode *pi)
 {
+	// 一定要持有pi的锁
 }
