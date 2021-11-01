@@ -27,13 +27,16 @@ int init_block_cache_block()
 	return 0;
 }
 
-/* 如果已经缓存，那么直接从缓存里面拿出来内存块；如果没缓存，那么取得一个空闲的内存块（之后就可以把磁盘加载到这里） */
+/* 如果已经缓存，那么直接从缓存里面拿出来内存块；如果没缓存，那么取得一个空闲的内存块（之后就可以把磁盘加载到这里）。
+ * 注意返回的数据块缓存 cache_block * 是持有锁的状态，同时引用计数也加一（包括从0变成1）。
+ */
 struct cache_block *cache_block_get(int blockno)
 {
 	struct cache_block *pc; // pointer to cache
 
 	/* 为了支持并发要有对这一整个 cache layer 进行加锁 */
-	// to do 给 bcache 加锁
+	if (pthread_mutex_lock(&bcache.cache_lock) == -1)
+		return NULL;
 
 	/* 注意这里不需要 is_cache 为1，因为 blockno 相同的情况代表要么已经加载进内存 is_cache为1，要么是马上要加载，
 	 * 另一个进程执行了缓冲不命中的结果，之后 is_cache 暂时为0代表要加载还没加载完，这里需要锁的同步机制，这里一定
@@ -54,10 +57,13 @@ struct cache_block *cache_block_get(int blockno)
 	for (pc = bcache.head.next; pc != &bcache.head; pc = pc->next)
 		if (pc->blockno == blockno)
 		{
-			// to do 释放 cache layer 这个整体的 bcache 锁
-			// to do 获取这个 pc 内存块的锁，这样并发的时候一个时间只有一个进程能操作
-			++pc->refcnt;
-			return pc; // 缓冲命中
+			++pc->refcnt; // 和inode同样，把引用计数和bcache的锁相关联??
+			if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
+				return NULL;
+
+			if (pthread_mutex_lock(&pc->cache_lock) == -1)
+				return NULL;
+			return pc; // 缓冲命中，返回的cache_block是持有锁的
 		}
 
 	/* is_cache 为 1 代表缓冲着数据，因为之后即使 refcnt 减到0的时候仅仅代表现在没有进程正在引用这个块，
@@ -69,14 +75,16 @@ struct cache_block *cache_block_get(int blockno)
 	for (pc = bcache.head.prev; pc != &bcache.head; pc = pc->prev)
 		if (pc->refcnt == 0)
 		{
-			// to do 释放 cache layer 这个整体的 bcache 锁
-			// to do 获取这个 pc 内存块的锁
+			if (pthread_mutex_lock(&bcache.cache_lock) == -1)
+				return NULL;
+
+			if (pthread_mutex_lock(&pc->cache_lock) == -1)
+				return NULL;
 			pc->blockno = blockno;
 			pc->is_cache = 0;
 			pc->refcnt = 1;
-			return pc; // 返回空闲 cache 块
+			return pc; // 返回的cache_block是持有锁的
 		}
-
 	return NULL; // 当前内存块不够使用，返回后要么终止，要么就休眠一会再尝试
 }
 
