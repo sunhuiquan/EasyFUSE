@@ -49,10 +49,6 @@ struct cache_block *cache_block_get(int blockno)
 	 * 简而言之，其实释放锁的时机更晚：
 	 * 缓冲命中   -> 请求加锁 -> 对这个已经加载进内存的块的操作(上层调用) -> 操作结束后释放锁
 	 * 缓冲不命中 -> 请求加锁 -> 从磁盘物理块加载进内存 -> 对这个已经加载进内存的块的操作(上层调用) -> 操作结束后释放锁
-	 *
-	 * 可见 blockno 对应但是 is_cache 为0还没加载进内存的情况下，进入缓冲命中处理，请求加锁，而别的进程之前缓冲不命中的
-	 * 情况已经请求到了锁，所以这个进程要等到缓冲不命中的那个进程释放锁，所以当这个进程之后加锁成功的时候，此时是一定已经从
-	 * 磁盘加载进这个 cache block，is_cache变成1了。
 	 */
 	for (pc = bcache.head.next; pc != &bcache.head; pc = pc->next)
 		if (pc->blockno == blockno)
@@ -85,31 +81,35 @@ struct cache_block *cache_block_get(int blockno)
 			pc->refcnt = 1;
 			return pc; // 返回的cache_block是持有锁的
 		}
-	return NULL; // 当前内存块不够使用，返回后要么终止，要么就休眠一会再尝试
+	return NULL; // 当前缓存中的空闲块不够使用，返回后要么终止，要么就休眠一会再尝试
 }
 
 /* 把磁盘内容读到缓冲块上（通过cache_block_get，如果命中则直接返回，否则需要从文件读到得到的空闲块）
- * 另外注意现在进程仍然拥有 cacle block 的锁。
+ * 另外注意现在进程仍然持有 cacle block 的锁。
  */
+// ??
 struct cache_block *block_read(int blockno)
 {
-	struct cache_block *pcb = cache_block_get(blockno);
-	if (pcb == NULL || !pcb->is_cache)
+	struct cache_block *pcb = cache_block_get(blockno); // 注意 pcb 这个 cache_block * 持有的锁
+
+	if (pcb == NULL) // 请求失败(可能是因为当前缓存中的空闲块不够用)
+		return NULL;
+	if (!pcb->is_cache) // 缓存命中，这里并不管is_cache是否从磁盘加载进内存的清空
 		return pcb;
 
 	// 缓冲不命中
-	if (disk_read(pcb) == -1)
-		return NULL;
-	pcb->is_cache; // 磁盘内容缓冲进了内存
-	return pcb;
+	// if (disk_read(pcb) == -1)
+	// 	return NULL;
+	// pcb->is_cache; // 磁盘内容缓冲进了内存
+	// return pcb;
 }
 
 /* 把内存块的内容写到磁盘上 */
-int block_write(struct cache_block *pcb)
-{
-	// to do 注意这里要确保进程获取了内存块的锁
-	// to do 为什么不能解锁而再请求锁，而是需要一直保存锁的原因？
-	if (disk_write(pcb) == -1)
-		return -1;
-	return 0;
-}
+// int block_write(struct cache_block *pcb)
+// {
+// 	// to do 注意这里要确保进程获取了内存块的锁
+// 	// to do 为什么不能解锁而再请求锁，而是需要一直保存锁的原因？
+// 	if (disk_write(pcb) == -1)
+// 		return -1;
+// 	return 0;
+// }
