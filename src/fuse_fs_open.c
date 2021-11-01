@@ -24,10 +24,7 @@ struct inode *create(char *path, ushort type)
 	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
 	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是没有加锁过的
 	{
-		if (inode_unlock(dir_pinode) == -1) // 解锁
-			return NULL;
-		/* 如果ref减少到0，就会给inode加锁，这里解锁是为了避开了重复加锁*/
-		if (inode_reduce_ref(dir_pinode) == -1) // 减引用，因为不再使用
+		if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 			return NULL;
 
 		if (inode_lock(pinode) == -1) // 为了保证如果成功返回是有锁的，保持一致
@@ -36,12 +33,8 @@ struct inode *create(char *path, ushort type)
 		if (pinode->dinode.type == type)
 			return pinode;
 
-		if (inode_unlock(pinode) == -1)
+		if (inode_unlock_then_reduce_ref(pinode) == -1)
 			return NULL;
-		/* 这里解锁后再减引用，避开了重复加锁*/
-		if (inode_reduce_ref(pinode) == -1)
-			return NULL;
-
 		return NULL;
 	}
 
@@ -72,9 +65,7 @@ struct inode *create(char *path, ushort type)
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
 		return -1;
 
-	if (inode_unlock(dir_pinode) == -1) // 解锁
-		return NULL;
-	if (inode_reduce_ref(dir_pinode) == -1) // 减引用
+	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 		return NULL;
 
 	return pinode;
@@ -94,9 +85,7 @@ struct inode *find_dir_inode(char *path, char *name)
 		// 路径中间的一个name不是目录文件，错误
 		if (pinode->dinode.type != FILE_DIR)
 		{
-			if (inode_unlock(pinode) == -1) // 解锁
-				return NULL;
-			if (inode_reduce_ref(pinode) == -1) // 减引用
+			if (inode_unlock_then_reduce_ref(pinode) == -1)
 				return NULL;
 			return NULL;
 		}
@@ -113,16 +102,12 @@ struct inode *find_dir_inode(char *path, char *name)
 		// 查找目录项，通过已有的该目录下的 inode 获取对应 name 的 inode
 		if ((next = dir_find(pinode, name)) == NULL)
 		{
-			if (inode_unlock(pinode) == -1) // 解锁
-				return NULL;
-			if (inode_reduce_ref(pinode) == -1) // 减引用
+			if (inode_unlock_then_reduce_ref(pinode) == -1)
 				return NULL;
 			return NULL;
 		}
 
-		if (inode_unlock(pinode) == -1) // 解锁
-			return NULL;
-		if (inode_reduce_ref(pinode) == -1) // 减引用
+		if (inode_unlock_then_reduce_ref(pinode) == -1)
 			return NULL;
 		pinode = next;
 	}
@@ -547,4 +532,13 @@ int inode_update(struct inode *pi)
 			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
 
 	// to do 释放 bbuf
+}
+
+int inode_unlock_then_reduce_ref(struct inode *pi)
+{
+	if (inode_unlock(pi) == -1)
+		return -1;
+	// unlock要在reduce_ref之前，避免重复加锁
+	if (inode_reduce_ref(pi) == -1)
+		return -1;
 }
