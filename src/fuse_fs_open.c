@@ -46,6 +46,9 @@ struct inode *create(char *path, ushort type)
 	}
 
 	// 这个name的文件不存在，所以新建一个 inode 表示这个文件，然后在文件所在目录里面新建一个目录项，指向这个 inode
+
+	// 分配一个新的inode(一定是icache不命中)，内部通过iget得到缓存中的inode结构(此时valid为0，
+	// 实际内容未加载到内存中)，然后未持有锁，且引用计数为1
 	if ((pinode = inode_allocate(type)) == NULL) // 返回的是没有加锁的inode指针
 		return -1;
 
@@ -396,7 +399,7 @@ int inode_unlock(struct inode *pi)
 }
 
 // db?
-/* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回 */
+/* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回,通过iget返回，未持有锁且引用计数加一 */
 struct inode *inode_allocate(ushort type)
 {
 	uint i, j;
@@ -530,6 +533,7 @@ int inode_free_address(struct inode *pi)
 	return 0;
 }
 
+// db?
 /* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的
  * 是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
  */
