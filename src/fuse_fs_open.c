@@ -74,41 +74,53 @@ struct inode *create(char *path, ushort type)
 	return pinode;
 }
 
-// 返回路径文件所在的目录的 inode
+// 返回路径文件所在的目录的 inode，返回的inode*是没有加锁的
 struct inode *find_dir_inode(char *path, char *name)
 {
 	struct inode *pinode, *next;
-	if (pinode == NULL)
-		return NULL;
 
-	pinode = iget(ROOT_INODE);
+	pinode = iget(ROOT_INODE); // iget返回的是未加锁的inode指针
 	while ((path = current_dir_name(path, name)) != NULL)
 	{
-		// to do 给 pinode 加锁
+		if (inode_lock(pinode) == -1)
+			return NULL;
 		// name 是当前层的中间name
 		// 路径中间的一个name不是目录文件，错误
 		if (pinode->dinode.type != FILE_DIR)
 		{
-			// to do iput 降低iget获取的缓存块的引用计数
+			if (inode_unlock(pinode) == -1) // 解锁
+				return NULL;
+			if (inode_reduce_ref(pinode) == -1) // 减引用
+				return NULL;
 			return NULL;
 		}
 
 		// 在name为最后一个文件名的时候进入，在下一个 dir_find 前 return 了，返回的是所在目录的inode，如果不中途返回那么 dir_find 这个 name 就是返回该文件的 inode
 		if (*path == '\0')
 		{
+			if (inode_unlock(pinode) == -1) // 解锁
+				return NULL;
+			// 这里返回的inode*要被使用，可不要减引用，不过要解锁
 			return pinode;
 		}
 
 		// 查找目录项，通过已有的该目录下的 inode 获取对应 name 的 inode
 		if ((next = dir_find(pinode, name)) == NULL)
 		{
-			// 找不到该 name 对应的目录项，错误
-			// to do iput 降低iget获取的缓存块的引用计数
+			if (inode_unlock(pinode) == -1) // 解锁
+				return NULL;
+			if (inode_reduce_ref(pinode) == -1) // 减引用
+				return NULL;
 			return NULL;
 		}
+
+		if (inode_unlock(pinode) == -1) // 解锁
+			return NULL;
+		if (inode_reduce_ref(pinode) == -1) // 减引用
+			return NULL;
 		pinode = next;
 	}
-	return pinode;
+	return NULL;
 }
 
 struct inode *iget(uint inum)
@@ -141,7 +153,7 @@ struct inode *iget(uint inum)
 /* 获取当前层(比如中间的路径名，直到最后的文件名)的路径名
  *
  * example: "" 	   => NULL
- * 			"/a/"  => path:""  name"a"
+ * 			"/a/"  => NULL  name"a"
  * 			"/a/b" => path:"b" name:"b"
  * (多余的 '/' 不影响结果，最后如果是 '/' 会忽略，不会当成路径)
  */
