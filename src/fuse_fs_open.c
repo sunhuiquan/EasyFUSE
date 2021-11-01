@@ -123,11 +123,18 @@ struct inode *find_dir_inode(char *path, char *name)
 	return NULL;
 }
 
+/* 去除对应inum的inode内存结构，命中则直接取出，没命中则分配好缓存后去除(不过磁盘inode内容并未加载)，
+ * 返回的inode指针是未加锁的。
+ *
+ * 另外第一次(缓存没命中的那次)valid为0，但不用担心，当我们使用这个inode指针的时候，就需要加锁，
+ * 加锁内部会判断valid，为0则加载磁盘内容到缓存里面
+ */
 struct inode *iget(uint inum)
 {
 	struct inode *pinode, *pempty = NULL;
 
-	// 对 icache 加锁
+	if (pthread_mutex_lock(&icache.cache_lock) != 0)
+		return NULL;
 
 	for (pinode = &icache.inodes[0]; pinode < &icache.inodes[CACHE_INODE_NUM]; ++pinode)
 	{
@@ -135,18 +142,29 @@ struct inode *iget(uint inum)
 		if (pinode->ref > 0 && pinode->inum == inum)
 		{
 			++pinode->ref;
-			// 对 icache 释放锁
+			if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+				return NULL;
 			return pinode;
 		}
 		if (pempty == NULL && pinode->ref == 0)
 			pempty = pinode;
 	}
 
+	/* 没有对valid和inum更改给inode加锁，是因为icache锁保证了一个缓存不命中的，在第一次iget返回前，
+	 * 只有一个进程能够可见这个新的inode，所以无需加锁。
+	 *
+	 * 没有对ref加锁，是因为我们这整个FS都做到修改一个ref前对整个icache加锁，而icache的锁的范围覆盖了
+	 * 单个inode的锁的范围，自然肯定是原子性的。
+	 */
+
 	// 缓存不命中
 	pempty->valid = 0;	 // 未从磁盘加载入这个内存中的 icache
 	pempty->inum = inum; // 现在这个空闲cache块开始缓存inum号inode
 	pempty->ref = 1;
-	// 对 icache 释放锁
+
+	if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+		return NULL;
+
 	return pempty;
 }
 
