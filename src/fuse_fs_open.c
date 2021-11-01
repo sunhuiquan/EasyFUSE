@@ -9,6 +9,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
+/* 创建一个type类型、path路径的文件，另外返回的inode指针是持有锁的 */
 struct inode *create(char *path, ushort type)
 {
 	struct inode *dir_pinode, *pinode;
@@ -17,35 +18,47 @@ struct inode *create(char *path, ushort type)
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
 		return -1;
 
-	if (inode_load(dir_pinode) == -1) // to do 对 dir_pinode 加锁
+	if (inode_lock(dir_pinode) == -1) // 对dp加锁
 		return NULL;
 
 	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
-	if ((pinode = dir_find(dir_pinode, basename)) != NULL)
+	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是被加锁过的
 	{
-		// to do dir_pinode 解锁并减引用
-		// to do 加锁这里返回的 pinode
+		if (inode_unlock(dir_pinode) == -1) // 解锁
+			return NULL;
+		/* 如果ref减少到0，就会给inode加锁，这里解锁是为了避开了重复加锁*/
+		if (inode_reduce_ref(dir_pinode) == -1) // 减引用，因为不再使用
+			return NULL;
+
 		if (pinode->dinode.type == type)
 			return pinode;
-		// to do 解锁这里返回的 pinode
+
+		if (inode_unlock(pinode) == -1) // 解锁
+			return NULL;
+		/* 这里解锁后再减引用，避开了重复加锁*/
+		if (inode_reduce_ref(pinode) == -1)
+			return NULL;
+
 		return NULL;
 	}
 
-	// to do 新建一个 inode 表示这个文件，然后在文件所在目录里面新建一个目录项，指向这个 inode
-	if ((pinode = inode_allocate(type)) == NULL)
+	// 这个name的文件不存在，所以新建一个 inode 表示这个文件，然后在文件所在目录里面新建一个目录项，指向这个 inode
+	if ((pinode = inode_allocate(type)) == NULL) // 返回的是没有加锁的inode指针
 		return -1;
 
-	if (inode_load(pinode) == -1) // to do 加锁
+	if (inode_lock(pinode) == -1) // 加锁
 		return NULL;
 	pinode->dinode.nlink = 1;
-	// to do update
+	if (inode_update(pinode) == -1) // 写入磁盘??
+		return NULL;
 
 	if (type == FILE_DIR) // 添加 . 和 .. 目录项
 	{
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
 		// No ip->nlink++ for ".": avoid cyclic ref count.??
+		if (inode_update(dir_pinode) == -1) // 写入磁盘
+			return NULL;
 
-		// iupdate?
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
 			return -1;
 	}
@@ -53,9 +66,12 @@ struct inode *create(char *path, ushort type)
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
 		return -1;
 
-	// to do 解锁dp并写回磁盘
+	if (inode_unlock(dir_pinode) == -1) // 解锁
+		return NULL;
+	if (inode_reduce_ref(dir_pinode) == -1) // 减引用
+		return NULL;
 
-	return 0;
+	return pinode;
 }
 
 // 返回路径文件所在的目录的 inode
