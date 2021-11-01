@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-/* 创建一个type类型、path路径的文件，另外返回的inode指针是持有锁的 */
+/* 创建一个type类型、path路径的文件，另外返回的inode指针是持有锁的？？ */
 struct inode *create(char *path, ushort type)
 {
 	struct inode *dir_pinode, *pinode;
@@ -22,7 +22,7 @@ struct inode *create(char *path, ushort type)
 		return NULL;
 
 	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
-	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是被加锁过的
+	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是没有加锁过的
 	{
 		if (inode_unlock(dir_pinode) == -1) // 解锁
 			return NULL;
@@ -30,10 +30,13 @@ struct inode *create(char *path, ushort type)
 		if (inode_reduce_ref(dir_pinode) == -1) // 减引用，因为不再使用
 			return NULL;
 
+		if (inode_lock(pinode) == -1) // 为了保证如果成功返回是有锁的，保持一致
+			return NULL;
+
 		if (pinode->dinode.type == type)
 			return pinode;
 
-		if (inode_unlock(pinode) == -1) // 解锁
+		if (inode_unlock(pinode) == -1)
 			return NULL;
 		/* 这里解锁后再减引用，避开了重复加锁*/
 		if (inode_reduce_ref(pinode) == -1)
@@ -74,7 +77,7 @@ struct inode *create(char *path, ushort type)
 	return pinode;
 }
 
-// 返回路径文件所在的目录的 inode，返回的inode*是没有加锁的
+// 返回路径文件所在的目录的 inode，通过iget，返回未加锁，且已增加了引用计数
 struct inode *find_dir_inode(char *path, char *name)
 {
 	struct inode *pinode, *next;
@@ -120,6 +123,8 @@ struct inode *find_dir_inode(char *path, char *name)
 			return NULL;
 		pinode = next;
 	}
+	if (inode_reduce_ref(pinode) == -1) // 减引用
+		return NULL;
 	return NULL;
 }
 
@@ -201,7 +206,8 @@ char *current_dir_name(char *path, char *name)
 }
 
 /*!
- * 通过目录 inode 查找该目录下对应 name 的 inode 并返回
+ * 通过目录 inode 查找该目录下对应 name 的 inode 并返回，通过iget，返回未加锁，且已增加了引用计数。
+ * (内存中调用iget就说明有新的对象指向了这个inode缓存，调用iget就会导致引用计数+1)
  *
  * \param pdi A pointer to current directory inode.
  */
@@ -215,6 +221,7 @@ struct inode *dir_find(struct inode *pdi, char *name)
 	uint sz = pdi->dinode.size;
 	for (uint off = 0; off < sz; off += sizeof(struct dirent))
 	{
+		// db?
 		if (readinode(pdi, &dirent, off, sizeof(struct dirent)) != sizeof(struct dirent))
 			return NULL;
 		if (dirent.inum != 0 && !strncmp(dirent.name, name, MAX_NAME))
@@ -388,6 +395,7 @@ int inode_unlock(struct inode *pi)
 	return 0;
 }
 
+// db?
 /* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回 */
 struct inode *inode_allocate(ushort type)
 {
@@ -411,6 +419,7 @@ struct inode *inode_allocate(ushort type)
 	return NULL; // 磁盘上无空闲的disk inode结构了
 }
 
+// db?
 int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
 {
 	struct dirent dir;
