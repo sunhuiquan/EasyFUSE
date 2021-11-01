@@ -1,9 +1,9 @@
-#include "../include/fuse_fs_open.h"
-#include "../include/inode.h"
-#include "../include/inode_cache.h"
-#include "../include/block_cache.h"
-#include "../include/fs.h"
-#include "../include/disk.h"
+#include "fuse_fs_open.h"
+#include "inode.h"
+#include "inode_cache.h"
+#include "block_cache.h"
+#include "fs.h"
+#include "disk.h"
 #include <string.h>
 #include <libgen.h>
 #include <sys/types.h>

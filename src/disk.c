@@ -1,6 +1,6 @@
-#include "../include/disk.h"
-#include "../include/util.h"
-#include "../include/inode.h"
+#include "disk.h"
+#include "util.h"
+#include "inode.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>

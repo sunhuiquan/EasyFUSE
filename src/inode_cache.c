@@ -1,4 +1,4 @@
-#include "../include/inode_cache.h"
+#include "inode_cache.h"
 
 #include <stdlib.h>
 

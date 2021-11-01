@@ -13,8 +13,8 @@
 // /* 对libfuse库接口的实现 */
 // static struct fuse_operations u_operation = {.getattr = fuse_fs_getattr};
 
-#include "../include/disk.h"
-#include "../include/util.h"
+#include "disk.h"
+#include "util.h"
 
 int main(int argc, char *argv[])
 {

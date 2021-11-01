@@ -1,5 +1,5 @@
-#include "../include/block_cache.h"
-#include "../include/disk.h"
+#include "block_cache.h"
+#include "disk.h"
 #include <stdlib.h>
 
 struct cache_list bcache;
