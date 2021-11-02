@@ -30,7 +30,7 @@ int init_block_cache_block()
 /* 如果已经缓存，那么直接从缓存里面拿出来内存块；如果没缓存，那么取得一个空闲的内存块（之后就可以把磁盘加载到这里）。
  * 注意返回的数据块缓存 cache_block * 是持有锁的状态，同时引用计数也加一（包括从0变成1）。
  */
-struct cache_block *cache_block_get(int blockno)
+static struct cache_block *cache_block_get(int blockno)
 {
 	struct cache_block *pc; // pointer to cache
 
@@ -86,17 +86,18 @@ struct cache_block *cache_block_get(int blockno)
 	return NULL; // 当前缓存中的空闲块不够使用，返回后要么终止，要么就休眠一会再尝试
 }
 
-/* 把磁盘内容读到缓冲块上（通过cache_block_get，如果命中则直接返回，否则需要从文件读到得到的空闲块）
+/* 把磁盘内容读到缓存块上，并返回这个缓存块，（通过cache_block_get，如果命中则直接返回，
+ * 否则需要找到一个空闲的缓存块返回），之后这个缓冲块如果is_cache为0则要求从磁盘加载内容，
  * 另外注意现在进程仍然持有 cacle block 的锁。
  */
-// ??
 struct cache_block *block_read(int blockno)
 {
 	struct cache_block *pcb = cache_block_get(blockno); // 注意 pcb 这个 cache_block * 持有的锁
 
 	if (!pcb->is_cache) // 未加载磁盘内容到缓存
 	{
-		// to do 加载磁盘内容到缓存
+		if (disk_read(pcb) == -1) // 加载磁盘内容到缓存
+			return -1;
 	}
 
 	return pcb;
