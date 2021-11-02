@@ -1,6 +1,11 @@
 #include "inode_cache.h"
-
+#include "disk.h"
 #include <stdlib.h>
+
+#define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))
+#define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
+
+#define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint)))
 
 struct inode_cache icache;
 
@@ -20,45 +25,292 @@ int inode_cache_init()
 	return 0;
 }
 
-/**
- * 返回缓存中的对应inum的inode结构，如果不命中，那么会返回对应inum的inode结构，
- * 但是此时是们没有把数据从disk_inode加载进来，valid是0
+/* 取出对应inum的inode内存结构，命中则直接取出，没命中则分配好缓存后去除(不过磁盘inode内容并未加载)，
+ * 返回的inode指针是未加锁的。
+ *
+ * 另外第一次(缓存没命中的那次)valid为0，但不用担心，当我们使用这个inode指针的时候，就需要加锁，
+ * 加锁内部会判断valid，为0则加载磁盘内容到缓存里面
  */
-static struct inode *
-iget(uint dev, uint inum)
+struct inode *iget(uint inum)
 {
-	struct inode *ip, *empty = NULL;
+	struct inode *pinode, *pempty = NULL;
 
-	if (pthread_mutex_lock(&icache.cache_lock) == -1)
-		return -1;
-
-	// 如果已cache，那么返回在缓存中的inode指针
-	empty = 0;
-	for (int i = 0; i < CACHE_INODE_NUM; ++i)
-	{
-		ip = &icache.inodes[i];
-		if (ip->ref > 0 && ip->dev == dev && ip->inum == inum)
-		{
-			++ip->ref; // inode cache引用计数增加，这里是cache的引用计数，和硬链接无关，只是为了方便cache的元素的回收利用
-			if (pthread_mutex_unlock(&icache.cache_lock) == -1)
-				return -1;
-			return ip;
-		}
-		if (empty == NULL && ip->ref == 0) // 记录空的缓存，如果cache不命中使用
-			empty = ip;
-	}
-
-	// 缓存不命中
-	if (empty == NULL)
+	if (pthread_mutex_lock(&icache.cache_lock) != 0)
 		return NULL;
 
-	ip = empty;
-	ip->dev = dev;
-	ip->inum = inum;
-	ip->ref = 1;
-	ip->valid = 0; // 磁盘数据未加载到cache
+	for (pinode = &icache.inodes[0]; pinode < &icache.inodes[CACHE_INODE_NUM]; ++pinode)
+	{
+		// 缓存命中
+		if (pinode->ref > 0 && pinode->inum == inum)
+		{
+			++pinode->ref;
+			if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+				return NULL;
+			return pinode;
+		}
+		if (pempty == NULL && pinode->ref == 0)
+			pempty = pinode;
+	}
 
-	if (pthread_mutex_unlock(&icache.cache_lock) == -1)
+	/* 没有对valid和inum更改给inode加锁，是因为icache锁保证了一个缓存不命中的，在第一次iget返回前，
+	 * 只有一个进程能够可见这个新的inode，所以无需加锁。
+	 *
+	 * 没有对ref加锁，是因为我们这整个FS都做到修改一个ref前对整个icache加锁，而icache的锁的范围覆盖了
+	 * 单个inode的锁的范围，自然肯定是原子性的。
+	 */
+
+	// 缓存不命中
+	pempty->valid = 0;	 // 未从磁盘加载入这个内存中的 icache
+	pempty->inum = inum; // 现在这个空闲cache块开始缓存inum号inode
+	pempty->ref = 1;
+
+	if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+		return NULL;
+
+	return pempty;
+}
+
+// 降低引用计数，并如果硬链接数和引用计数都为0时，释放对应磁盘
+int inode_reduce_ref(struct inode *pi)
+{
+	// 我们可能要回收某一个缓存块，这个加锁是为了保证避免竞争使多次回收错误
+	if (pthread_mutex_lock(&icache.cache_lock) != 0)
 		return -1;
-	return ip;
+
+	// 注意，如果引用计数为0说明可以回收复用缓存了，不过我们不需要在这里做任何事情，因为关于缓存的回收
+	// 是写在 iget() 里面的，那里发现 ref 为0会自动复用
+	--pi->ref;
+
+	/* 如果硬链接数和引用计数都为0时，释放对应磁盘结构，不要要知道这里只释放磁盘 inode 结构，
+	 * 关于缓存释放是在 iget() 里面的。
+	 *
+	 * 然后是pi->valid必须为1，代表执行了inode_load，因为硬链接计数是那之后才加载进来的，如果
+	 * pi->valid为0，单纯把引用计数降低为0让之后被释放复用即可，不过这里并不会影响我们的程序，
+	 * 因为无论想要做什么，即使是单纯删除硬链接，都是要先inode_lock,那里面会调用inode_load。
+	 *
+	 * 第二个需要注意的点是，即使unlink一个文件，让文件的硬链接数为0，但如果缓存的引用计数不为时，
+	 * 仍然不是一个释放磁盘inode块的时机，这是为了保证临时文件的正常使用。
+	 * linux上有临时文件的常用用法，就是open O_CREATE得到fd后立即unlink删除目录项(也就是硬链接)，
+	 * 即使那是唯一的硬链接，此时内核是不会释放磁盘空间的，因为还有fd引用，通过这个fd可以正常使用
+	 * 这个临时文件，只有所有引用(fd关闭)为0，而且nlink也为0，这个时候才是真正释放磁盘空间的时机。
+	 */
+	if (pi->ref == 0 && pi->valid && pi->dinode.nlink == 0)
+	{
+		// 这是因为中间不涉及对icache的操作，而且接下来的几个操作耗时间也不小，这里是为了细粒度的临界区，提高并发性
+		if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+			return -1;
+		if (pthread_mutex_lock(&pi->inode_lock) != 0)
+			return -1;
+
+		inode_free_address(pi); // 释放所有inode持有的数据块，同时把addr数组清零
+		pi->dinode.type = 0;	// 让磁盘的该dionde结构可以被下次的inode_allocate分配重用
+		inode_update(pi);		// 把dinode结构写到对应磁盘
+
+		if (pthread_mutex_unlock(&pi->inode_lock) != 0)
+			return -1;
+		if (pthread_mutex_lock(&icache.cache_lock) != 0)
+			return -1;
+	}
+	if (pthread_mutex_unlock(&icache.cache_lock) != 0)
+		return -1;
+	return 0;
+}
+
+/* 释放inode所指向的所有数据块，注意调用这个的时候一定要持有pi的锁。 */
+int inode_free_address(struct inode *pi)
+{
+	struct cache_block *bbuf;
+	uint *pui;
+
+	// 一定要持有pi的锁
+	for (int i = 0; i < NDIRECT; ++i)
+		if (pi->dinode.addrs[i])
+		{
+			if (block_free(pi->dinode.addrs[i]) == -1) // 释放数据块
+				return -1;
+			pi->dinode.addrs[i] = 0;
+		}
+
+	if (pi->dinode.addrs[NDIRECT])
+	{
+		if ((bbuf = cache_block_get(pi->dinode.addrs[NDIRECT])) == NULL)
+			return -1;
+		pui = (uint *)bbuf->data;
+		for (; pui < &bbuf->data[BLOCK_SIZE]; ++pui) // pui指向存值的地址，之后解引用即可得到值
+			if (*pui)
+			{
+				if (block_free(*pui) == -1) // 释放数据块
+					return -1;
+			}
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+		if (block_free(pi->dinode.addrs[NDIRECT]) == -1) // 释放这个二级索引数据块
+			return -1;
+		pi->dinode.addrs[NDIRECT] = 0;
+	}
+	pi->dinode.size = 0; // 之后要iupdate写入磁盘
+
+	return 0;
+}
+
+/* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的
+ * 是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
+ */
+int inode_update(struct inode *pi)
+{
+	// 一定要持有pi的锁
+	struct cache_block *bbuf;
+	if ((bbuf = cache_block_get(pi->inum + superblock.inode_block_startno)) == NULL)
+		return -1;
+	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
+			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
+	if (block_unlock_then_reduce_ref(bbuf) == -1)
+		return -1;
+	return 0;
+}
+
+/* 释放inode的锁并减引用 */
+int inode_unlock_then_reduce_ref(struct inode *pi)
+{
+	if (inode_unlock(pi) == -1)
+		return -1;
+	// unlock要在reduce_ref之前，避免重复加锁
+	if (inode_reduce_ref(pi) == -1)
+		return -1;
+}
+
+/* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回,通过iget返回，未持有锁且引用计数加一 */
+struct inode *inode_allocate(ushort type)
+{
+	uint i, j;
+	struct cache_block *bbuf;
+	struct disk_inode *pdi;
+
+	for (i = 0; i < superblock.inode_block_num; ++i)
+	{
+		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
+			return NULL;
+
+		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
+		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
+			if (pdi->type == 0)
+				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
+
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+	}
+	return NULL; // 磁盘上无空闲的disk inode结构了
+}
+
+/* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中，这个加载的功能集成到ilock里面了，
+ * 因为如果要使用，肯定是要先上锁，上锁的同时顺便就检测加载了
+ */
+static int inode_load(struct inode *pi)
+{
+	if (pi->valid == 0)
+	{
+		struct cache_block *bbuf;
+		struct disk_inode *dibuf;
+		if ((bbuf = block_read(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块，这里block_read以及加载入内存
+			return -1;
+
+		dibuf = (struct disk_inode *)(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)]);
+		memcpy(&pi->dinode, dibuf, sizeof(struct disk_inode)); // 把数据块缓存上的内容拷贝到inode缓存的dinode字段里面
+
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+
+		pi->valid = 1;
+		if (pi->dinode.type == 0) // 磁盘上对应的inode记录为未被使用
+			return -1;
+	}
+	return 0;
+}
+
+/* 对内存中的inode对象加锁，然后如果未加载到内存，那么将磁盘上的内容加载到内存中，
+ * 把 valid 等于0的情况判断是否加载到内存集成到加锁里面，是因为如果要操作inode的情况，
+ * 都要加锁保证原子性，这样顺便检测是否已加载入就可以了
+ */
+int inode_lock(struct inode *pi)
+{
+	if (pi == NULL || pi->ref < 1)
+		return -1;
+
+	if (pthread_mutex_lock(&pi->inode_lock) != 0) // 加锁
+		return -1;
+
+	// 在加锁后，避免竞争导致多次 inode_load 的错误
+	return inode_load(pi);
+}
+
+/* 对内存中的inode对象解锁*/
+int inode_unlock(struct inode *pi)
+{
+	if (pi == NULL || pi->ref < 1)
+		return -1;
+	if (pthread_mutex_unlock(&pi->inode_lock) != 0)
+		return -1;
+	return 0;
+}
+
+// 读 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后读数据块
+int readinode(struct inode *pi, void *dst, uint off, uint n)
+{
+	uint blockno;
+	struct cache_block *bbuf;
+	int readn, len;
+
+	if (n < 0 || off > pi->dinode.size)
+		return -1;
+	if (off + n > pi->dinode.size)
+		n = pi->dinode.size - off;
+
+	for (readn = 0; readn < n; readn += len, off += len, dst += len)
+	{
+		// 得到所在偏移量所在的块，并读到缓存，得到的缓存块是持有着锁的
+		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
+			return -1;
+
+		if ((bbuf = block_read(blockno)) == NULL)
+			return -1;
+		// 拷贝具体的该块内的偏移量的数据
+		len = min(n - readn, BLOCK_SIZE - off % BLOCK_SIZE);
+		memmove((char *)dst, bbuf->data + (off % BLOCK_SIZE), len);
+
+		if (block_unlock_then_reduce_ref(bbuf) == -1) // 解锁并减少引用计数（因为不再使用）
+			return -1;
+	}
+	return readn;
+}
+
+// 写 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后写数据块
+int writeinode(struct inode *pi, void *src, uint off, uint n)
+{
+	uint blockno;
+	struct cache_block *bbuf;
+	int writen, len;
+
+	if (n < 0 || off > pi->dinode.size)
+		return -1;
+	if (off + n > MAX_FILE_BLOCK_NUM * BLOCK_SIZE)
+		return -1;
+
+	for (writen = 0; writen < n; writen += len, off += len, src += len)
+	{
+		// 得到所在偏移量所在的块，并读到缓存
+		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
+			return -1;
+		if ((bbuf = block_read(blockno)) == NULL)
+			return -1;
+		len = min(n - writen, BLOCK_SIZE - off % BLOCK_SIZE);
+		memmove(bbuf->data + (off % BLOCK_SIZE), src, len);
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+	}
+	if (off > pi->dinode.size)
+		pi->dinode.size = off;
+
+	if (inode_update(pi) == -1) // ??
+		return -1;
+	return writen;
 }
