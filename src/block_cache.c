@@ -86,7 +86,7 @@ static struct cache_block *cache_block_get(int blockno)
 	return NULL; // 当前缓存中的空闲块不够使用，返回后要么终止，要么就休眠一会再尝试
 }
 
-/* 把磁盘内容读到缓存块上，并返回这个缓存块，（通过cache_block_get，如果命中则直接返回，
+/* 把磁盘内容读到缓存块上（如果is_cache为0则把磁盘内容读到内存，然后is_cache变成1），并返回这个缓存块，（通过cache_block_get，如果命中则直接返回，
  * 否则需要找到一个空闲的缓存块返回），之后这个缓冲块如果is_cache为0则要求从磁盘加载内容，
  * 另外注意现在进程仍然持有 cacle block 的锁。
  */
@@ -98,6 +98,7 @@ struct cache_block *block_read(int blockno)
 	{
 		if (disk_read(pcb) == -1) // 加载磁盘内容到缓存
 			return -1;
+		pcb->is_cache = 1; // 因为cache_block_get返回持有锁，所以安全
 	}
 
 	return pcb;

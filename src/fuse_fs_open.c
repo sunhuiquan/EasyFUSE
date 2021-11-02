@@ -341,6 +341,7 @@ int balloc()
 #define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))
 #define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
 
+// ??
 /* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中 */
 int inode_load(struct inode *pi)
 {
@@ -348,7 +349,7 @@ int inode_load(struct inode *pi)
 	{
 		struct cache_block *bbuf;
 		struct disk_inode *dibuf;
-		if ((bbuf = cache_block_get(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块
+		if ((bbuf = block_read(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块，这里block_read以及加载入内存
 			return -1;
 		dibuf = (struct disk_inode *)(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)]);
 		memcpy(&pi->dinode, dibuf, sizeof(struct disk_inode));
