@@ -68,6 +68,8 @@ struct cache_block *cache_block_get(int blockno)
 	 * 通过 LRU 机制找到最久前分配的缓冲块释放，is_cache 变成0（无论之前是否为0），代表此时没有缓冲数据是空闲的，
 	 * 之后的其他函数可以通过 is_cache 得知是否缓冲命中，没用命中的话然后会再从磁盘读入再变成1。
 	 */
+
+	// 缓存不命中，找到一个空闲缓存块返回
 	for (pc = bcache.head.prev; pc != &bcache.head; pc = pc->prev)
 		if (pc->refcnt == 0)
 		{
@@ -92,24 +94,18 @@ struct cache_block *block_read(int blockno)
 {
 	struct cache_block *pcb = cache_block_get(blockno); // 注意 pcb 这个 cache_block * 持有的锁
 
-	if (pcb == NULL) // 请求失败(可能是因为当前缓存中的空闲块不够用)
-		return NULL;
-	if (!pcb->is_cache) // 缓存命中，这里并不管is_cache是否从磁盘加载进内存的清空
-		return pcb;
+	if (!pcb->is_cache) // 未加载磁盘内容到缓存
+	{
+		// to do 加载磁盘内容到缓存
+	}
 
-	// 缓冲不命中
-	// if (disk_read(pcb) == -1)
-	// 	return NULL;
-	// pcb->is_cache; // 磁盘内容缓冲进了内存
-	// return pcb;
+	return pcb;
 }
 
-/* 把内存块的内容写到磁盘上 */
-// int block_write(struct cache_block *pcb)
-// {
-// 	// to do 注意这里要确保进程获取了内存块的锁
-// 	// to do 为什么不能解锁而再请求锁，而是需要一直保存锁的原因？
-// 	if (disk_write(pcb) == -1)
-// 		return -1;
-// 	return 0;
-// }
+/* 把内存块的内容写到磁盘上，此时参数pcb这个缓冲块指针是持有锁的 */
+int block_write(struct cache_block *pcb)
+{
+	if (disk_write(pcb) == -1)
+		return -1;
+	return 0;
+}
