@@ -342,8 +342,10 @@ int balloc()
 #define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
 
 // ??
-/* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中 */
-int inode_load(struct inode *pi)
+/* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中，这个加载的功能集成到ilock里面了，
+ * 因为如果要使用，肯定是要先上锁，上锁的同时顺便就检测加载了
+ */
+static int inode_load(struct inode *pi)
 {
 	if (pi->valid == 0)
 	{
@@ -351,9 +353,13 @@ int inode_load(struct inode *pi)
 		struct disk_inode *dibuf;
 		if ((bbuf = block_read(INODE_NUM(pi->inum, superblock))) == NULL) // 读取对应的inode记录所在的逻辑块，这里block_read以及加载入内存
 			return -1;
+
 		dibuf = (struct disk_inode *)(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)]);
-		memcpy(&pi->dinode, dibuf, sizeof(struct disk_inode));
-		// 释放 dibuf 锁
+		memcpy(&pi->dinode, dibuf, sizeof(struct disk_inode)); // 把数据块缓存上的内容拷贝到inode缓存的dinode字段里面
+
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+
 		pi->valid = 1;
 		if (pi->dinode.type == 0) // 磁盘上对应的inode记录为未被使用
 			return -1;
