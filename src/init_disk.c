@@ -87,18 +87,9 @@ static int init_disk(const char *path)
 	// ======================================================================================
 	// 3.设置bitmap块，我们的bitmap_set_or_clear实现是没有缓存中间层，直接读写磁盘的
 
-	/* 初始化bitmap块,初始化时除了 boot block， super block， 32个 bitmap block 之外都是0，
-	 * 而之前初始化磁盘的时候已经全部清0了，所以这里只需要设1。
-	 */
-	if (bitmap_set_or_clear(0, 1) == -1) // 设置boot块的bitmap位为1
-		return -1;
-	if (bitmap_set_or_clear(1, 1) == -1) // 设置superblock块的bitmap位为1
-		return -1;
-
-	// to do inode块用不用位图？不用需要设置成1
-
-	for (int i = 0; i < 32; ++i)
-		if (bitmap_set_or_clear(i + superblock.bitmap_block_startno, 1) == -1)
+	/* 初始化bitmap块,初始化时除了数据块全部设置成1，因为只有数据块需要使用这个 */
+	for (int i = 0; i < superblock.bitmap_block_startno; ++i)
+		if (bitmap_set_or_clear(i, 1) == -1)
 			return -1;
 
 	// ======================================================================================
@@ -112,8 +103,8 @@ static int init_disk(const char *path)
 		return -1;
 	if (write(disk_fd, &dinode, sizeof(struct disk_inode)) != sizeof(struct disk_inode))
 		return -1;
-	// if (bitmap_set_or_clear(superblock.inode_block_startno, 1) == -1)
-	// 	return -1;
+	if (bitmap_set_or_clear(superblock.data_block_startno, 1) == -1) // 设置对应数据块位图为1
+		return -1;
 
 	struct dirent dir;
 	dir.inum = 0;
@@ -124,8 +115,6 @@ static int init_disk(const char *path)
 		return -1;
 	strncpy(dir.name, "..", MAX_NAME);
 	if (write(disk_fd, &dir, sizeof(struct dirent)) != sizeof(struct dirent))
-		return -1;
-	if (bitmap_set_or_clear(superblock.data_block_startno, 1) == -1)
 		return -1;
 
 	return 0;

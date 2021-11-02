@@ -29,10 +29,10 @@ int load_disk(const char *path)
 	return 0;
 }
 
-/* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用的结果），
- * 这里涉及到逻辑块和物理块的映射，不过我们的实现是一对一所以这里的代码体现不出来
+/* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用不命中的结果），
+ * 这里涉及到逻辑块和物理块的映射，不过我们的实现是一对一所以这里的代码体现不出来，
+ * 另外这里的这个cache_block是持有锁的。
  */
-// ??
 int disk_read(struct cache_block *buf)
 {
 	if (lseek(disk_fd, buf->blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
@@ -42,8 +42,9 @@ int disk_read(struct cache_block *buf)
 	return 0;
 }
 
-/* 把内存块的内容写到磁盘上，这里涉及到逻辑块和物理块的映射，不过我们的实现是一对一所以这里的代码体现不出来 */
-// ??
+/* 把内存块的内容写到磁盘上，这里涉及到逻辑块和物理块的映射，不过我们的实现是一对一所以这里的代码体现不出来
+ * 另外这里的这个cache_block是持有锁的。
+ */
 int disk_write(struct cache_block *buf)
 {
 	if (lseek(disk_fd, buf->blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
