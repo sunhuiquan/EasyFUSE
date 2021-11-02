@@ -393,27 +393,26 @@ int inode_unlock(struct inode *pi)
 	return 0;
 }
 
-// db?
 /* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回,通过iget返回，未持有锁且引用计数加一 */
 struct inode *inode_allocate(ushort type)
 {
-	// 	uint i, j;
-	// 	struct cache_block *bbuf;
-	// 	struct disk_inode *pdi;
+	uint i, j;
+	struct cache_block *bbuf;
+	struct disk_inode *pdi;
 
-	// 	for (i = 0; i < superblock.inode_block_num; ++i)
-	// 	{
-	// 		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
-	// 			return NULL;
+	for (i = 0; i < superblock.inode_block_num; ++i)
+	{
+		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
+			return NULL;
 
-	// 		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
-	// 		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
-	// 		{
-	// 			if (pdi->type == 0)
-	// 				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
-	// 		}
-	// 		// to do 释放 bbuf
-	// 	}
+		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
+		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
+			if (pdi->type == 0)
+				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
+
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+	}
 	return NULL; // 磁盘上无空闲的disk inode结构了
 }
 
@@ -520,7 +519,8 @@ int inode_free_address(struct inode *pi)
 				if (block_free(*pui) == -1) // 释放数据块
 					return -1;
 			}
-		// to do 释放 bbuf
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
 		if (block_free(pi->dinode.addrs[NDIRECT]) == -1) // 释放这个二级索引数据块
 			return -1;
 		pi->dinode.addrs[NDIRECT] = 0;
@@ -530,7 +530,6 @@ int inode_free_address(struct inode *pi)
 	return 0;
 }
 
-// db?
 /* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的
  * 是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
  */
@@ -542,8 +541,9 @@ int inode_update(struct inode *pi)
 		return -1;
 	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
 			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
-
-	// to do 释放 bbuf
+	if (block_unlock_then_reduce_ref(bbuf) == -1)
+		return -1;
+	return 0;
 }
 
 int inode_unlock_then_reduce_ref(struct inode *pi)

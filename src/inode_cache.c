@@ -29,7 +29,8 @@ iget(uint dev, uint inum)
 {
 	struct inode *ip, *empty = NULL;
 
-	// to do icache加锁
+	if (pthread_mutex_lock(&icache.cache_lock) == -1)
+		return -1;
 
 	// 如果已cache，那么返回在缓存中的inode指针
 	empty = 0;
@@ -39,7 +40,8 @@ iget(uint dev, uint inum)
 		if (ip->ref > 0 && ip->dev == dev && ip->inum == inum)
 		{
 			++ip->ref; // inode cache引用计数增加，这里是cache的引用计数，和硬链接无关，只是为了方便cache的元素的回收利用
-			// to do icache解锁
+			if (pthread_mutex_unlock(&icache.cache_lock) == -1)
+				return -1;
 			return ip;
 		}
 		if (empty == NULL && ip->ref == 0) // 记录空的缓存，如果cache不命中使用
@@ -56,7 +58,7 @@ iget(uint dev, uint inum)
 	ip->ref = 1;
 	ip->valid = 0; // 磁盘数据未加载到cache
 
-	// to do icache解锁
-
+	if (pthread_mutex_unlock(&icache.cache_lock) == -1)
+		return -1;
 	return ip;
 }
