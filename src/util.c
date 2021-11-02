@@ -12,6 +12,6 @@ void err_exit(const char *msg)
 
 void test_err_exit(int lineno, const char *msg)
 {
-	printf("test failed in %s on line %d\n", msg, strerror(errno), lineno);
+	printf("%s failed: %s on line %d\n", msg, strerror(errno), lineno);
 	exit(EXIT_FAILURE);
 }
