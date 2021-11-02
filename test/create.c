@@ -1,7 +1,7 @@
-#include "../include/fuse_fs_open.h"
-#include "../include/util.h"
-#include "../include/inode.h"
-#include "../include/disk.h"
+#include "fuse_fs_open.h"
+#include "util.h"
+#include "inode.h"
+#include "disk.h"
 #include <stdlib.h>
 
 int main(int argc, char *argv)

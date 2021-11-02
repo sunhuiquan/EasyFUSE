@@ -102,8 +102,27 @@ int balloc()
 			unsigned char bit = bbuf->data[j];
 			for (k = 0; k < 8; bit >>= 1, ++k)
 				if (bit & 1)
+				{
+					if (block_unlock_then_reduce_ref(bbuf) == -1)
+						return -1;
+					if (block_zero(j * 8 + k) == -1)
+						return -1;
 					return (j * 8) + k;
+				}
 		}
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
 	}
 	return -1;
+}
+
+static int block_zero(int blockno)
+{
+	char zerobuf[BLOCK_SIZE];
+	memset(zerobuf, 0, sizeof(zerobuf));
+	if (lseek(disk_fd, blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
+		return -1;
+	if (write(disk_fd, zerobuf, BLOCK_SIZE) != BLOCK_SIZE)
+		return -1;
+	return 0;
 }
