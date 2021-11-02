@@ -9,7 +9,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-/* 创建一个type类型、path路径的文件，另外返回的inode指针是持有锁的？？ */
+/* 创建一个type类型、path路径的文件，返回的inode指针是持有锁的 */
 struct inode *create(char *path, ushort type)
 {
 	struct inode *dir_pinode, *pinode;
@@ -269,12 +269,14 @@ int writeinode(struct inode *pi, void *src, uint off, uint n)
 			return -1;
 		len = min(n - writen, BLOCK_SIZE - off % BLOCK_SIZE);
 		memmove(bbuf->data + (off % BLOCK_SIZE), src, len);
-		// to do brelse bbuf
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
 	}
 	if (off > pi->dinode.size)
 		pi->dinode.size = off;
 
-	// to do iupdate pinode
+	if (inode_update(pi) == -1) // ??
+		return -1;
 	return writen;
 }
 
@@ -341,7 +343,6 @@ int balloc()
 #define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))
 #define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
 
-// ??
 /* 如果未加载到内存，那么将磁盘上的 dinode 加载到内存 icache 缓存中，这个加载的功能集成到ilock里面了，
  * 因为如果要使用，肯定是要先上锁，上锁的同时顺便就检测加载了
  */
@@ -396,27 +397,27 @@ int inode_unlock(struct inode *pi)
 /* 在磁盘中找到一个未被使用的disk_inode结构，然后加载入内容并返回,通过iget返回，未持有锁且引用计数加一 */
 struct inode *inode_allocate(ushort type)
 {
-	uint i, j;
-	struct cache_block *bbuf;
-	struct disk_inode *pdi;
+	// 	uint i, j;
+	// 	struct cache_block *bbuf;
+	// 	struct disk_inode *pdi;
 
-	for (i = 0; i < superblock.inode_block_num; ++i)
-	{
-		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
-			return NULL;
+	// 	for (i = 0; i < superblock.inode_block_num; ++i)
+	// 	{
+	// 		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
+	// 			return NULL;
 
-		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
-		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
-		{
-			if (pdi->type == 0)
-				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
-		}
-		// to do 释放 bbuf
-	}
+	// 		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
+	// 		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
+	// 		{
+	// 			if (pdi->type == 0)
+	// 				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
+	// 		}
+	// 		// to do 释放 bbuf
+	// 	}
 	return NULL; // 磁盘上无空闲的disk inode结构了
 }
 
-// db?
+// 将name和inum组合成一条dirent结构，写入pdi这个目标inode结构，注意pdi是持有锁的
 int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
 {
 	struct dirent dir;
@@ -424,9 +425,11 @@ int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
 
 	if ((pi = dir_find(pdi, name)) != NULL)
 	{
-		// iput pi
+		if (inode_reduce_ref(pi) == -1) // 没加锁，所以只减引用计数
+			return -1;
 		return -1;
 	}
+	// pi == NULL 代表该目录里面没有这个名字的目录项
 
 	int off = 0;
 	for (; off < pdi->dinode.size; off += sizeof(struct dirent))
