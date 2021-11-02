@@ -125,7 +125,16 @@ int brelse(struct cache_block *bbuf)
 
 	if (bbuf->refcnt == 0) // 引用计数降低到0，这个缓存块没有被任何操作使用
 	{
-		// to do
+		/* 将这个节点放到头结点的下一个的第一个位置，注意虽然refcnt的计数为0，但是里面的
+		 * 内容仍是最新的内容，而且没有写回磁盘，下次cache_block_get仍可以缓存命中，
+		 * 至于具体的写回磁盘需要手动调用，而不是在此处。??
+		 */
+		bbuf->next->prev = bbuf->prev;
+		bbuf->prev->next = bbuf->next;
+		bbuf->next = bcache.head.next;
+		bbuf->prev = &bcache.head;
+		bcache.head.next->prev = bbuf;
+		bcache.head.next = bbuf;
 	}
 
 	if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
