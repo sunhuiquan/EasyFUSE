@@ -31,13 +31,13 @@ struct cache_list
 /* 初始化缓存块结构 */
 int init_block_cache_block();
 
-/* 从磁盘中读取物理块到内存中的block cache数组缓冲结构 */
-struct cache_block *cache_block_get(int blockno);
-
 /* 把磁盘内容读到缓冲块上（通过cache_block_get，如果命中则直接返回，否则需要从文件读到得到的空闲块） */
 struct cache_block *block_read(int blockno);
 
 /* 把内存块的内容写到磁盘上 */
 int block_write(struct cache_block *pcb);
+
+/* 释放锁，并减少这个缓存数据块的引用计数，如果引用计数降低到0，那么会回收这个缓存块 */
+int block_unlock_then_reduce_ref(struct cache_block *bbuf);
 
 #endif

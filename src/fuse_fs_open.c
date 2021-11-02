@@ -209,7 +209,6 @@ struct inode *dir_find(struct inode *pdi, char *name)
 	uint sz = pdi->dinode.size;
 	for (uint off = 0; off < sz; off += sizeof(struct dirent))
 	{
-		// db?
 		if (readinode(pdi, &dirent, off, sizeof(struct dirent)) != sizeof(struct dirent))
 			return NULL;
 		if (dirent.inum != 0 && !strncmp(dirent.name, name, MAX_NAME))
@@ -232,16 +231,19 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 
 	for (readn = 0; readn < n; readn += len, off += len, dst += len)
 	{
-		// 得到所在偏移量所在的块，并读到缓存
+		// 得到所在偏移量所在的块，并读到缓存，得到的缓存块是持有着锁的
 		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
 			return -1;
+
 		if ((bbuf = block_read(blockno)) == NULL)
 			return -1;
 		// 拷贝具体的该块内的偏移量的数据
 		len = min(n - readn, BLOCK_SIZE - off % BLOCK_SIZE);
 		memmove((char *)dst, bbuf->data + (off % BLOCK_SIZE), len);
+
+		if (block_unlock_then_reduce_ref(bbuf) == -1) // 解锁并减少引用计数（因为不再使用）
+			return -1;
 	}
-	// 释放 bbuf 锁，在 get_data_blockno_by_inode 内部加的
 	return readn;
 }
 

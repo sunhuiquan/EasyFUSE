@@ -111,10 +111,8 @@ int block_write(struct cache_block *pcb)
 	return 0;
 }
 
-/* 释放锁，并减少这个缓存数据块的引用计数，如果引用计数降低到0，
- * 那么会回收这个缓存块
- */
-int brelse(struct cache_block *bbuf)
+/* 释放锁，并减少这个缓存数据块的引用计数，如果引用计数降低到0，那么会回收这个缓存块 */
+int block_unlock_then_reduce_ref(struct cache_block *bbuf)
 {
 	if (pthread_mutex_unlock(&bbuf->block_lock) == -1)
 		return -1;
@@ -127,7 +125,8 @@ int brelse(struct cache_block *bbuf)
 	{
 		/* 将这个节点放到头结点的下一个的第一个位置，注意虽然refcnt的计数为0，但是里面的
 		 * 内容仍是最新的内容，而且没有写回磁盘，下次cache_block_get仍可以缓存命中，
-		 * 至于具体的写回磁盘需要手动调用，而不是在此处。??
+		 * 至于具体的写回磁盘需要手动调用，而不是在此处，这样尽量使用内存中的数据块，而减少
+		 * 写回的次数，将多次内存写入组合成一个磁盘写入，从而提高了效率。
 		 */
 		bbuf->next->prev = bbuf->prev;
 		bbuf->prev->next = bbuf->next;
