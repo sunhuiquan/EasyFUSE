@@ -6,7 +6,7 @@
 
 extern struct super_block superblock;
 
-#define BIT_NUM_BLOCK 8192 // BLOCKSIZE * 8
+#define BIT_NUM_BLOCK (BLOCK_SIZE * 8) // 一个bitmap块标识的块数
 
 /* 运行fuse fs文件系统，加载磁盘，读取必要信息 */
 int load_disk(const char *path);
@@ -22,5 +22,8 @@ int bitmap_set_or_clear(int blockno, int is_set);
 
 // int balloc() 通过 bitmap 获取一个空的磁盘上的数据块号，设置 bitmap 对应位为1
 int balloc();
+
+/* 释放磁盘上的数据块，单纯就是把位图设置成0，不清零，因为balloc()分配新数据块的时候会初始化清零 */
+int block_free(int blockno);
 
 #endif

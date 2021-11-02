@@ -86,7 +86,7 @@ int bitmap_set_or_clear(int blockno, int is_set)
 	return 0;
 }
 
-// int balloc() 通过 bitmap 获取一个空的磁盘上的数据块号，设置 bitmap 对应位为1
+// int balloc() 通过 bitmap 获取一个空的磁盘上的数据块号，清空磁盘上这个数据块的残余数据，设置 bitmap 对应位为1
 int balloc()
 {
 	struct cache_block *bbuf;
@@ -113,9 +113,10 @@ int balloc()
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
 			return -1;
 	}
-	return -1;
+	return -1; // 无空闲数据块
 }
 
+/* 清空这个逻辑块号对应的磁盘上的物理块号（我们的对应关系是逻辑块号等于物理块号） */
 static int block_zero(int blockno)
 {
 	char zerobuf[BLOCK_SIZE];
@@ -123,6 +124,14 @@ static int block_zero(int blockno)
 	if (lseek(disk_fd, blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
 		return -1;
 	if (write(disk_fd, zerobuf, BLOCK_SIZE) != BLOCK_SIZE)
+		return -1;
+	return 0;
+}
+
+/* 释放磁盘上的数据块，单纯就是把位图设置成0，不清零，因为balloc()分配新数据块的时候会初始化清零 */
+int block_free(int blockno)
+{
+	if (bitmap_set_or_clear(blockno, 0) == -1)
 		return -1;
 	return 0;
 }

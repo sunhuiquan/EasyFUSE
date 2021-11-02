@@ -2,12 +2,11 @@
 #include "disk.h"
 #include <stdlib.h>
 
-#define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))
-#define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno)
+#define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))				  // 一个块里面的disk_inode结构数
+#define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno) // 得到inum对应的逻辑磁盘块号
 
-#define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint)))
-
-#define FILE_SIZE_MAX ((12 + 256) * BLOCK_SIZE)
+#define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint))) // 一个文件最多拥有的块数
+#define FILE_SIZE_MAX (MAX_FILE_BLOCK_NUM * BLOCK_SIZE)						   // 一个文件的最大大小
 
 struct inode_cache icache;
 
@@ -150,13 +149,17 @@ int inode_free_address(struct inode *pi)
 			return -1;
 		pi->dinode.addrs[NDIRECT] = 0;
 	}
-	pi->dinode.size = 0; // 之后要iupdate写入磁盘
-
+	pi->dinode.size = 0;
+	if (inode_update(pi) == -1)
+		return -1;
 	return 0;
 }
 
 /* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的
  * 是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
+ *
+ * 只要修改了 struct inode 中的 dinode 字段，就要 inode_update 更新磁盘上
+ * dinode 结构的内容（虽然更新实际上在 block cache，不过 inode 层看不到这点）
  */
 int inode_update(struct inode *pi)
 {
@@ -285,7 +288,7 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 	return readn;
 }
 
-// 写 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后写数据块
+// 写 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后写这个数据块
 int writeinode(struct inode *pi, void *src, uint off, uint n)
 {
 	uint blockno;
