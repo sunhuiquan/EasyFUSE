@@ -1,6 +1,7 @@
 #include "disk.h"
 #include "util.h"
 #include "inode.h"
+#include "block_cache.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
@@ -11,6 +12,8 @@
  * 只存在于驱动，那里会把我们的逻辑块自动映射成对应的物理块再由驱动代码使用，所以物理块
  * 对于FS代码是不可见的(和虚拟内存一样）。
  */
+
+static int block_zero(int blockno);
 
 /* 模拟磁盘文件的file descriptor */
 int disk_fd;
@@ -23,11 +26,11 @@ struct super_block superblock;
 /* 运行fuse fs文件系统，加载磁盘，读取必要信息 */
 int load_disk(const char *path)
 {
-	if ((disk_fd = open(path, O_RDWR)) == -1)
-		return -1;
+	// if ((disk_fd = open(path, O_RDWR)) == -1)
+	// 	return -1;
 	// to do 注意这里的 superblock 加载在内存作为一个全局变量，和bcache缓冲无关，其他程序直接通过这个全局变量来访问
 
-	return 0;
+	return -1;
 }
 
 /* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用不命中的结果），

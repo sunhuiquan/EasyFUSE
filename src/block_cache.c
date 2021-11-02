@@ -97,7 +97,7 @@ struct cache_block *block_read(int blockno)
 	if (!pcb->is_cache) // 未加载磁盘内容到缓存
 	{
 		if (disk_read(pcb) == -1) // 加载磁盘内容到缓存
-			return -1;
+			return NULL;
 		pcb->is_cache = 1; // 因为cache_block_get返回持有锁，所以安全
 	}
 

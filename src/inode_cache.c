@@ -1,12 +1,17 @@
 #include "inode_cache.h"
 #include "disk.h"
 #include <stdlib.h>
+#include <string.h>
+#include <util.h>
 
 #define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))				  // 一个块里面的disk_inode结构数
 #define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno) // 得到inum对应的逻辑磁盘块号
 
 #define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint))) // 一个文件最多拥有的块数
 #define FILE_SIZE_MAX (MAX_FILE_BLOCK_NUM * BLOCK_SIZE)						   // 一个文件的最大大小
+
+// static 函数，仅在此源文件范围内使用，不放在头文件
+static int get_data_blockno_by_inode(struct inode *pi, uint off);
 
 struct inode_cache icache;
 
@@ -134,10 +139,10 @@ int inode_free_address(struct inode *pi)
 
 	if (pi->dinode.addrs[NDIRECT])
 	{
-		if ((bbuf = cache_block_get(pi->dinode.addrs[NDIRECT])) == NULL)
+		if ((bbuf = block_read(pi->dinode.addrs[NDIRECT])) == NULL)
 			return -1;
 		pui = (uint *)bbuf->data;
-		for (; pui < &bbuf->data[BLOCK_SIZE]; ++pui) // pui指向存值的地址，之后解引用即可得到值
+		for (; pui < (uint *)&bbuf->data[BLOCK_SIZE]; ++pui) // pui指向存值的地址，之后解引用即可得到值
 			if (*pui)
 			{
 				if (block_free(*pui) == -1) // 释放数据块
@@ -165,7 +170,7 @@ int inode_update(struct inode *pi)
 {
 	// 一定要持有pi的锁
 	struct cache_block *bbuf;
-	if ((bbuf = cache_block_get(pi->inum + superblock.inode_block_startno)) == NULL)
+	if ((bbuf = block_read(pi->inum + superblock.inode_block_startno)) == NULL)
 		return -1;
 	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
 			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
@@ -193,7 +198,7 @@ struct inode *inode_allocate(ushort type)
 
 	for (i = 0; i < superblock.inode_block_num; ++i)
 	{
-		if ((bbuf = cache_block_get(superblock.inode_block_startno + i)) == NULL)
+		if ((bbuf = block_read(superblock.inode_block_startno + i)) == NULL)
 			return NULL;
 
 		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
@@ -202,7 +207,7 @@ struct inode *inode_allocate(ushort type)
 				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
 
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
-			return -1;
+			return NULL;
 	}
 	return NULL; // 磁盘上无空闲的disk inode结构了
 }

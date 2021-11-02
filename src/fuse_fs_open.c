@@ -6,6 +6,8 @@
 #include <sys/types.h>
 #include <pthread.h>
 
+static char *current_dir_name(char *path, char *name);
+
 /* 创建一个type类型、path路径的文件，返回的inode指针是持有锁的 */
 struct inode *create(char *path, ushort type)
 {
@@ -13,7 +15,7 @@ struct inode *create(char *path, ushort type)
 	char basename[MAX_NAME];
 
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
-		return -1;
+		return NULL;
 
 	if (inode_lock(dir_pinode) == -1) // 对dp加锁
 		return NULL;
@@ -40,7 +42,7 @@ struct inode *create(char *path, ushort type)
 	// 分配一个新的inode(一定是icache不命中)，内部通过iget得到缓存中的inode结构(此时valid为0，
 	// 实际内容未加载到内存中)，然后未持有锁，且引用计数为1
 	if ((pinode = inode_allocate(type)) == NULL) // 返回的是没有加锁的inode指针
-		return -1;
+		return NULL;
 
 	if (inode_lock(pinode) == -1) // 加锁
 		return NULL;
@@ -56,11 +58,11 @@ struct inode *create(char *path, ushort type)
 			return NULL;
 
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
-			return -1;
+			return NULL;
 	}
 
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
-		return -1;
+		return NULL;
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 		return NULL;
@@ -120,7 +122,7 @@ struct inode *find_dir_inode(char *path, char *name)
  * 			"/a/b" => path:"b" name:"b"
  * (多余的 '/' 不影响结果，最后如果是 '/' 会忽略，不会当成路径)
  */
-char *current_dir_name(char *path, char *name)
+static char *current_dir_name(char *path, char *name)
 {
 	char *s;
 	int len;
@@ -170,7 +172,7 @@ struct inode *dir_find(struct inode *pdi, char *name)
 }
 
 // 将name和inum组合成一条dirent结构，写入pdi这个目标inode结构，注意pdi是持有锁的
-int add_dirent_entry(struct inode *pdi, const char *name, uint inum)
+int add_dirent_entry(struct inode *pdi, char *name, uint inum)
 {
 	struct dirent dir;
 	struct inode *pi;

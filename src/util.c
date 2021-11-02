@@ -10,8 +10,7 @@ void err_exit(const char *msg)
 	exit(EXIT_FAILURE);
 }
 
-void test_err_exit(int lineno, const char *msg)
+int min(int a, int b)
 {
-	printf("%s failed: %s on line %d\n", msg, strerror(errno), lineno);
-	exit(EXIT_FAILURE);
+	return a < b ? a : b;
 }
