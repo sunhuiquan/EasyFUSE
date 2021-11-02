@@ -85,3 +85,18 @@ int bitmap_set_or_clear(int blockno, int is_set)
 		return -1;
 	return 0;
 }
+
+// int balloc() 通过 bitmap 获取一个空的磁盘上的数据块号，设置 bitmap 对应位为1
+int balloc()
+{
+	// struct cache_block *bbuf;
+	// for (int i = 0; i < superblock.bitmap_block_num; ++i) // bitmap块号，共32个
+	// {
+	// 	if ((bbuf = block_read(superblock.bitmap_block_startno + i)) == NULL)
+	// 		return -1;
+	// 	for (int j = 0; j < BLOCK_SIZE; ++j)
+	// 	{
+	// 		char bit = bbuf->data[j];
+	// 	}
+	// }
+}

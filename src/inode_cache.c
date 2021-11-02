@@ -7,6 +7,8 @@
 
 #define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint)))
 
+#define FILE_SIZE_MAX ((12 + 256) * BLOCK_SIZE)
+
 struct inode_cache icache;
 
 /* 初始化 inode cache 缓存，其实就是初始化它的互斥锁 */
@@ -313,4 +315,47 @@ int writeinode(struct inode *pi, void *src, uint off, uint n)
 	if (inode_update(pi) == -1) // ??
 		return -1;
 	return writen;
+}
+
+/* 根据inode的dinode的address的索引，和该文件的偏移量得到对应的数据块号 */
+static int get_data_blockno_by_inode(struct inode *pi, uint off)
+{
+	uint blockno; // 数据块号
+	struct cache_block *bbuf;
+	uint *indirect_addrs;
+
+	if (off < 0 || off > FILE_SIZE_MAX)
+		return -1;
+
+	int boff = off / BLOCK_SIZE; // 得到是第几个数据块（数据块偏移量）
+	if (boff < NDIRECT)			 // 直接指向
+	{
+		if ((blockno = pi->dinode.addrs[boff]) == 0)
+			// 对应的地址未指向数据块，则分配一个并返回
+			blockno = pi->dinode.addrs[boff] = balloc();
+		return blockno;
+	}
+	boff -= NDIRECT;
+
+	// 我们用 uint 作为块号的单位，所以是 BLOCK_SIZE / sizeof(uint)
+	if (boff < (NINDIRECT * (BLOCK_SIZE / sizeof(uint)))) // 二级引用
+	{
+		if ((blockno = pi->dinode.addrs[NDIRECT]) == 0)
+			blockno = pi->dinode.addrs[NDIRECT] = balloc();
+		bbuf = block_read(blockno); // 读数据块
+		if (bbuf == NULL)
+			return -1;
+
+		indirect_addrs = (uint *)bbuf->data;
+		// 这里转成 uint 数组形式的作用是，这样通过下标得到的地址就是 index * sizeof(struct uint) 了，要不然你要手动 *4 因为原本是 char 数组的形式
+		if ((blockno = indirect_addrs[boff]) == 0)
+		{
+			// 对应的地址未指向数据块，则分配一个并返回
+			blockno = indirect_addrs[boff] = balloc();
+		}
+		if (block_unlock_then_reduce_ref(bbuf) == -1)
+			return -1;
+		return blockno;
+	}
+	return -1;
 }
