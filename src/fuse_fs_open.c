@@ -1,9 +1,6 @@
 #include "fuse_fs_open.h"
-#include "inode.h"
 #include "inode_cache.h"
 #include "block_cache.h"
-#include "fs.h"
-#include "disk.h"
 #include <string.h>
 #include <libgen.h>
 #include <sys/types.h>
@@ -48,14 +45,14 @@ struct inode *create(char *path, ushort type)
 	if (inode_lock(pinode) == -1) // 加锁
 		return NULL;
 	pinode->dinode.nlink = 1;
-	if (inode_update(pinode) == -1) // 写入磁盘??
+	if (inode_update(pinode) == -1)
 		return NULL;
 
 	if (type == FILE_DIR) // 添加 . 和 .. 目录项
 	{
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
 		// No ip->nlink++ for ".": avoid cyclic ref count.??
-		if (inode_update(dir_pinode) == -1) // 写入磁盘
+		if (inode_update(dir_pinode) == -1)
 			return NULL;
 
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)

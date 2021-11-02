@@ -155,8 +155,8 @@ int inode_free_address(struct inode *pi)
 	return 0;
 }
 
-/* 把dinode结构写到对应磁盘，注意这个是inode本身，而之前的wrietinode写的
- * 是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
+/* 把dinode结构写到对应磁盘（虽然实际上是写入block_cache缓存），注意这个是inode本身，
+ * 而之前的wrietinode写的是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
  *
  * 只要修改了 struct inode 中的 dinode 字段，就要 inode_update 更新磁盘上
  * dinode 结构的内容（虽然更新实际上在 block cache，不过 inode 层看不到这点）
