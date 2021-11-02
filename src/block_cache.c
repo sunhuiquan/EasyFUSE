@@ -17,7 +17,7 @@ int init_block_cache_block()
 		bcache.head.next->prev = &bcache.bcaches[i];
 		bcache.head.next = &bcache.bcaches[i];
 
-		if (pthread_mutex_init(&bcache.bcaches[i].cache_lock, NULL) != 0) // 初始化单个数据块结构的锁
+		if (pthread_mutex_init(&bcache.bcaches[i].block_lock, NULL) != 0) // 初始化单个数据块结构的锁
 			return -1;
 	}
 
@@ -57,7 +57,7 @@ static struct cache_block *cache_block_get(int blockno)
 			if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
 				return NULL;
 
-			if (pthread_mutex_lock(&pc->cache_lock) == -1)
+			if (pthread_mutex_lock(&pc->block_lock) == -1)
 				return NULL;
 			return pc; // 缓冲命中，返回的cache_block是持有锁的
 		}
@@ -76,7 +76,7 @@ static struct cache_block *cache_block_get(int blockno)
 			if (pthread_mutex_lock(&bcache.cache_lock) == -1)
 				return NULL;
 
-			if (pthread_mutex_lock(&pc->cache_lock) == -1)
+			if (pthread_mutex_lock(&pc->block_lock) == -1)
 				return NULL;
 			pc->blockno = blockno;
 			pc->is_cache = 0;
@@ -107,6 +107,50 @@ struct cache_block *block_read(int blockno)
 int block_write(struct cache_block *pcb)
 {
 	if (disk_write(pcb) == -1)
+		return -1;
+	return 0;
+}
+
+/* 释放锁，并减少这个缓存数据块的引用计数，如果引用计数降低到0，
+ * 那么会回收这个缓存块
+ */
+int brelse(struct cache_block *bbuf)
+{
+	if (pthread_mutex_unlock(&bbuf->block_lock) == -1)
+		return -1;
+
+	if (pthread_mutex_lock(&bcache.cache_lock) == -1)
+		return -1;
+	--bbuf->refcnt;
+
+	if (bbuf->refcnt == 0) // 引用计数降低到0，这个缓存块没有被任何操作使用
+	{
+		// to do
+	}
+
+	if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
+		return -1;
+	return 0;
+}
+
+/* 增加这个缓存数据块引用计数 */
+int block_increase_ref(struct cache_block *bbuf)
+{
+	if (pthread_mutex_lock(&bcache.cache_lock) == -1)
+		return -1;
+	++bbuf->refcnt;
+	if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
+		return -1;
+	return 0;
+}
+
+/* 减少这个缓存数据块的引用计数 */
+int block_reduce_ref(struct cache_block *bbuf)
+{
+	if (pthread_mutex_lock(&bcache.cache_lock) == -1)
+		return -1;
+	--bbuf->refcnt;
+	if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
 		return -1;
 	return 0;
 }

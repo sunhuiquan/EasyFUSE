@@ -15,7 +15,7 @@ struct cache_block // 数据块在内存中的结构
 	uint is_cache;				// 是否正在缓冲数据
 	uint refcnt;				// 引用计数，到 0 的时候代表释放可重用
 	uint is_changed;			// 脏页标志
-	pthread_mutex_t cache_lock; // 对单个内存中的数据块结构加锁
+	pthread_mutex_t block_lock; // 对单个内存中的数据块结构加锁
 	struct cache_block *prev;
 	struct cache_block *next;
 	char data[BLOCK_SIZE]; // 实际 block 的内容，即实际读入/写回磁盘的内容，前几个字段都是内存中才有的
