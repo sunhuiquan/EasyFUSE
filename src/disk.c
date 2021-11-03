@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <stdio.h>
+#include <errno.h>
 
 /* 注意在我们的文件系统中的所有代码，使用的都是逻辑块，block_get()参数是逻辑块号，
  * block_put()参数中指定是逻辑块在内存中的结构，而涉及到逻辑块和物理块的映射的代码，
@@ -15,6 +16,8 @@
  */
 
 static int block_zero(int blockno);
+
+#define MAGIC_NUMBER 0x123456789a
 
 /* 模拟磁盘文件的file descriptor */
 int disk_fd;
@@ -35,10 +38,16 @@ int load_disk(const char *path)
 	if (read(disk_fd, &superblock, sizeof(struct super_block)) != sizeof(struct super_block))
 		return -1;
 
+	// 验证错误，不是我们的FUSE_FS或者没有经过初始化磁盘init_disk程序
+	if (superblock.magic != MAGIC_NUMBER)
+	{
+		errno = EINVAL;
+		return -1;
+	}
+
 	// 输出加载的 superblock 的信息
 	pr_superblock_information(&superblock);
-
-	return -1;
+	return 0;
 }
 
 /* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用不命中的结果），

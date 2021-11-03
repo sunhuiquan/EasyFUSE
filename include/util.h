@@ -1,6 +1,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "fs.h"
+
 int min(int a, int b);
 
 void err_exit(const char *msg);

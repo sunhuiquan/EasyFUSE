@@ -11,6 +11,8 @@
 
 extern int disk_fd;
 
+#define MAGIC_NUMBER 0x123456789a
+
 /* 格式化磁盘，这个操作只在第一次安装(不是启动)fuse fs需要，或是文件系统崩溃，重新格式化的时候需要使用 */
 static int init_disk(const char *path)
 {
@@ -71,6 +73,8 @@ static int init_disk(const char *path)
 	 * 即整个文件系统最多能放 8MB 的数据(这里把非数据块也算上了)，显然太小，所以我们多使用几个
 	 * bitmap块，我们这里使用了32个 bitmap block，能表示 256MB 的文件系统。
 	 */
+
+	superblock.magic = MAGIC_NUMBER;
 
 	superblock.inode_block_startno = 2;
 	superblock.inode_block_num = (superblock.block_num - 34) / 17; // 1 : 16 的比例

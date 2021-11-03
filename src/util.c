@@ -1,7 +1,6 @@
 /* 用于输出各种辅助信息，以便debug的辅助函数库 */
 
 #include "util.h"
-#include "disk.h"
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -18,7 +17,7 @@ void err_exit(const char *msg)
 	exit(EXIT_FAILURE);
 }
 
-/* 输出加载的 superblock 的信息 */
+/* 打印 superblock 的信息 */
 void pr_superblock_information(const struct super_block *superblock)
 {
 	printf("super block:\n");
