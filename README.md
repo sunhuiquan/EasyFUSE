@@ -88,8 +88,10 @@ dd if=/dev/zero of=diskimg bs=1024 count=10000
 - [x] 初步实现块位图机制，通过块位图查找空闲的数据块(不包含Inode结构)
 - [x] 初步实现数据块缓冲机制
 - [x] 初步实现Inode块(指一个Inode结构算一个Inode块)缓冲机制
-- [x] 初步实现Inode块、Inode块缓冲的加锁机制
-- [x] 初步实现数据块、数据块缓冲的加锁机制
+- [x] 实现Inode块、Inode块缓冲的加锁机制
+- [x] 实现数据块、数据块缓冲的加锁机制
 - [x] CMake编译项目
+- [ ] 实现logging layer，日志机制
 - [ ] 实现创建文件功能并测试
+- [ ] 实现libfuse open API
 - [ ] ...
