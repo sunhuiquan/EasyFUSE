@@ -110,7 +110,7 @@ int inode_reduce_ref(struct inode *pi)
 
 		inode_free_address(pi); // 释放所有inode持有的数据块，同时把addr数组清零
 		pi->dinode.type = 0;	// 让磁盘的该dionde结构可以被下次的inode_allocate分配重用
-		inode_update(pi);		// 把dinode结构写到对应磁盘
+		inode_update(pi);		// 把dinode结构写到对应磁盘（实际是bcache）
 
 		if (pthread_mutex_unlock(&pi->inode_lock) != 0)
 			return -1;
@@ -160,11 +160,17 @@ int inode_free_address(struct inode *pi)
 	return 0;
 }
 
-/* 把dinode结构写到对应磁盘（虽然实际上是写入block_cache缓存），注意这个是inode本身，
- * 而之前的wrietinode写的是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
+/* 把dinode结构写到对应磁盘（虽然实际上是写入block_cache缓存，还没有实际写入磁盘中，
+ * 但从inode layer级别上来看是认为写入磁盘了），注意这个是inode本而之前的wrietinode
+ * 写的是指向的数据块中的数据，注意调用这个的时候一定要持有pi的锁。
  *
- * 只要修改了 struct inode 中的 dinode 字段，就要 inode_update 更新磁盘上
- * dinode 结构的内容（虽然更新实际上在 block cache，不过 inode 层看不到这点）
+ * 只要修改了 struct inode 中的 dinode 字段，就会调用 inode_update，因此在inode层上
+ * 来看是直写的（一旦改变就立即写入），虽然简单（因为立即保证了写入磁盘），但看上来直写
+ * 是低效率的，但实际上并不用担心这个效率，因为实际上是写入bcache缓存，没有实际写入磁盘，
+ * 之后是通过block cache层再实际写到磁盘中的。
+ *
+ * 而block cache层的写入磁盘是明明确确的写回（不是直接写入，而是先在内存中保存更改），
+ * 这个bcache缓存写可以发生了很多次，但只有最后一次才是实际写入磁盘的操作，提高了效率。
  */
 int inode_update(struct inode *pi)
 {
@@ -320,7 +326,7 @@ int writeinode(struct inode *pi, void *src, uint off, uint n)
 	if (off > pi->dinode.size)
 		pi->dinode.size = off;
 
-	if (inode_update(pi) == -1) // ??
+	if (inode_update(pi) == -1)
 		return -1;
 	return writen;
 }
