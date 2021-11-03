@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
+#include <stdio.h>
 
 /* 注意在我们的文件系统中的所有代码，使用的都是逻辑块，block_get()参数是逻辑块号，
  * block_put()参数中指定是逻辑块在内存中的结构，而涉及到逻辑块和物理块的映射的代码，
@@ -35,13 +36,7 @@ int load_disk(const char *path)
 		return -1;
 
 	// 输出加载的 superblock 的信息
-	printf("super block:\n");
-	printf("\t inode_block_startno: %u\n", superblock.inode_block_startno);
-	printf("\t inode_block_num: %u\n", superblock.inode_block_num);
-	printf("\t bitmap_block_startno: %u\n", superblock.bitmap_block_startno);
-	printf("\t bitmap_block_num: %u\n", superblock.bitmap_block_num);
-	printf("\t data_block_startno: %u\n", superblock.data_block_startno);
-	printf("\t data_block_num: %u\n", superblock.data_block_num);
+	pr_superblock_information(&superblock);
 
 	return -1;
 }

@@ -84,6 +84,9 @@ static int init_disk(const char *path)
 	if (write(disk_fd, &superblock, sizeof(superblock)) != sizeof(superblock))
 		return -1;
 
+	// 输出要写入的 superblock 的信息
+	pr_superblock_information(&superblock);
+
 	// ======================================================================================
 	// 3.设置bitmap块，我们的bitmap_set_or_clear实现是没有缓存中间层，直接读写磁盘的
 
