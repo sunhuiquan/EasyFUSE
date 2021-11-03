@@ -26,9 +26,22 @@ struct super_block superblock;
 /* 运行fuse fs文件系统，加载磁盘，读取必要信息 */
 int load_disk(const char *path)
 {
-	// if ((disk_fd = open(path, O_RDWR)) == -1)
-	// 	return -1;
-	// to do 注意这里的 superblock 加载在内存作为一个全局变量，和bcache缓冲无关，其他程序直接通过这个全局变量来访问
+	if ((disk_fd = open(path, O_RDWR)) == -1)
+		return -1;
+	//这里的 superblock 加载在内存作为一个全局变量，和bcache缓冲无关，其他程序直接通过这个全局变量来访问
+	if (lseek(disk_fd, 1 * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
+		return -1;
+	if (read(disk_fd, &superblock, sizeof(struct super_block)) != sizeof(struct super_block))
+		return -1;
+
+	// 输出加载的 superblock 的信息
+	printf("super block:\n");
+	printf("\t inode_block_startno: %u\n", superblock.inode_block_startno);
+	printf("\t inode_block_num: %u\n", superblock.inode_block_num);
+	printf("\t bitmap_block_startno: %u\n", superblock.bitmap_block_startno);
+	printf("\t bitmap_block_num: %u\n", superblock.bitmap_block_num);
+	printf("\t data_block_startno: %u\n", superblock.data_block_startno);
+	printf("\t data_block_num: %u\n", superblock.data_block_num);
 
 	return -1;
 }
