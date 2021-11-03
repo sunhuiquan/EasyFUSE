@@ -1,3 +1,5 @@
+/* 实现 libfuse open API */
+
 #include "fuse_fs_open.h"
 #include "inode_cache.h"
 #include "block_cache.h"
@@ -60,13 +62,11 @@ struct inode *create(char *path, ushort type)
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
 			return NULL;
 	}
-
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
 		return NULL;
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 		return NULL;
-
 	return pinode;
 }
 

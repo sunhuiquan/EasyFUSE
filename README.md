@@ -7,6 +7,7 @@
 - [FUSE-FS](#fuse-fs)  
 - [Index](#index)  
 - [项目介绍](#项目介绍)  
+- [项目文件](#项目文件)  
 - [项目原理](#项目原理)  
 - [如何使用](#如何使用)  
 - [参考文献](#参考文献)  
@@ -14,18 +15,38 @@
 
 ## 项目介绍
 
-玩具文件系统机制非常多，每年关于 FS 机制的 OS 课设也是非常多，但绝大部分都是玩具中的玩具。这个 FUSE-FS 的区别于那些糟糕玩具的地方有三个点，那就是用户态 FS、支持并发、支持日志恢复。
+玩具文件系统机制非常多，每年关于 FS 机制的 OS 课设也是非常多，但绝大部分都是玩具中的玩具。这个 FUSE-FS 的区别于那些糟糕玩具的地方有四点，那就是用户态、分层设计、并发支持、日志机制。
 
-  1. **用户态 FS：**  
+  1. **用户态：**  
   设计 FS 的时候，为了显得不那么玩具，我想要通过 linux VFS 接口，让 linux 支持。但是直接在 linux 内核中实在太过困难，所以我选择了 FUSE 来实现一个用户态的文件系统.那么什么是 FUSE 呢？
   简而言之，它作为一种通信机制，把内核对 VFS 接口的使用从内核态转发到用户态的我们实现的用户文件系统机制，然后用户文件系统把结果再通过 libfuse 发回内核，来完成对抽象文件系统(VFS)的实现。
 
-  2. **并发支持：**  
+  2. **分层设计：**
+     <!-- 1. disk layer
+     2. bitmap layer
+     3. block cache layer
+     4. log layer
+     5. inode cache layer
+     6. dictory layer
+     7. pathname layer
+     8. file descriptor layer -->
+
+  3. **并发支持：**  
      1. 通过pthread的mutex作为使用的锁机制，保证临界区的原子性访问，分别对于缓存区整体、每一个缓存区中的元素拥有一个锁，建立两层锁机制。例如第一层锁是对于inode cache整体有一个锁保证了一个 inode 在缓存只有一个副本(因为to do)，以及缓存 inode 的引用计数正确（to do）；第二层锁是对每个内存中的 inode 都有一个锁，保证了可以独占访问 inode 的相关字段，以及 inode 所对应的数据块（to do）。对于数据块整体 cache 结构和内存中的单个数据块结构同理，也是这样的二层锁机制保证。
      2. 另外我们通过两层引用计数完成了分别对内存中的缓存结构和磁盘中的具体块的释放复用。例如一个内存中的 inode 的引用计数如果大于 0，则会使系统将该 inode 保留在缓存中，而不会重用该缓存 buffer；而每个磁盘上的 inode 结构都包含一个 nlink 硬链接计数字段，即引用该 inode 结构的目录项的数量，当 inode 的硬链接计数为零时，才会释放磁盘上这一个 inode 结构，让它被复用。数据块则是只有一个内存中的引用计数字段保证数据块缓存结构中的释放复用，磁盘上的数据块只是单纯的数据。
 
-  3. **日志恢复机制：**  
-  to do 还在画饼中
+  4. **日志机制：**  
+     to do 还在画饼中
+
+## 项目文件
+
+- [init_disk.c](src/init_disk.c) 用于初始化磁盘
+- [disk.c](src/disk.c) 磁盘驱动层(disk layer)代码，里面是读写磁盘的驱动程序（我们的这里是通过linux文件API的模拟），也是逻辑块号转物理块号被驱动程序使用的地方（不过我们的实现使用的逻辑块与物理块是一对一的关系）。
+- [block_cache.c](src/block_cache.c) 数据块缓存层(block layer)代码，提供磁盘上的数据块加载到内存的缓存机制。
+- [inode_cache.c](src/inode_cache.c) Inode缓存层(block layer)代码，提供磁盘上的Inode结构加载到内存的缓存机制，不过实际上Inode读写请求的操作是通过 block layer 这一中间层实现的，会先读到 block cache，然后再从 block cache读到 inode cache。
+<!-- - [log.c](src/log.c) logging layer，日志层 to do  -->
+- [util.c](src/util.c) 用于输出各种辅助信息，以便debug的辅助函数库
+- [fuse_fs_open.c](src/fuse_fs_open.c) 实现 libfuse open API
 
 ## 如何使用
 

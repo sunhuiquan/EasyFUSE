@@ -1,3 +1,5 @@
+/* 用于初始化磁盘 */
+
 #include "fs.h"
 #include "util.h"
 #include "inode.h"

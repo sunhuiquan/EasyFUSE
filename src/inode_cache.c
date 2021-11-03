@@ -1,3 +1,8 @@
+/* Inode缓存层(block layer)代码，提供磁盘上的Inode结构加载到内存的缓存机制，不过实际上Inode读写
+ * 请求的操作是通过 block layer 这一中间层实现的，会先读到 block cache，然后再从 block cache
+ * 读到 inode cache。
+ */
+
 #include "inode_cache.h"
 #include "disk.h"
 #include <stdlib.h>
@@ -299,7 +304,12 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
 	return readn;
 }
 
-// 写 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后写这个数据块
+/* 向 inode 对应数据块写数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，
+ * 然后写这个数据块。
+ *
+ * 看起来是直接写到对应磁盘（虽然实际上是写入block_cache缓存，还没有实际写入磁盘中，
+ * 但从inode layer级别上来看是认为写入磁盘了）
+ */
 int writeinode(struct inode *pi, void *src, uint off, uint n)
 {
 	uint blockno;

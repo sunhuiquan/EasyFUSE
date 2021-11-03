@@ -1,5 +1,7 @@
-/* 对磁盘中disk_inode记录的缓存，注意一个块是1024B,而一个disk_inode的大小是64B */
-
+/* Inode缓存层(block layer)代码，提供磁盘上的Inode结构加载到内存的缓存机制，不过实际上Inode读写
+ * 请求的操作是通过 block layer 这一中间层实现的，会先读到 block cache，然后再从 block cache
+ * 读到 inode cache。
+ */
 #ifndef INODE_CACHE_H
 #define INODE_CACHE_H
 

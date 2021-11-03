@@ -1,3 +1,5 @@
+/* 数据块缓存层(block layer)代码，提供磁盘上的数据块加载到内存的缓存机制。 */
+
 #include "block_cache.h"
 #include "disk.h"
 #include <stdlib.h>

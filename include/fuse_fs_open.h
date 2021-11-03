@@ -1,3 +1,5 @@
+/* 实现 libfuse open API */
+
 #ifndef FUSE_FS_OPEN_H
 #define FUSE_FS_OPEN_H
 

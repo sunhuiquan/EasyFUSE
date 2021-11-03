@@ -1,3 +1,5 @@
+/* 用于输出各种辅助信息，以便debug的辅助函数库 */
+
 #ifndef UTIL_H
 #define UTIL_H
 

@@ -1,4 +1,4 @@
-/* 这里的块缓存是对数据块进行的缓存，不含对inode的缓存 */
+/* 数据块缓存层(block layer)代码，提供磁盘上的数据块加载到内存的缓存机制。 */
 
 #ifndef BLOCK_CACHE_H
 #define BLOCK_CACHE_H
