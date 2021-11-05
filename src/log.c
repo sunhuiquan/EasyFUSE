@@ -9,10 +9,10 @@
 #include <pthread.h>
 
 static int recover_from_log_disk();
-static int write_to_disk(int is_recover);
+static int write_to_data_disk(int is_recover);
 static int disk_read_log_head();
 static int write_log_head_to_disk();
-static int copy_to_log();
+static int copy_to_log_disk();
 
 /**
  * 原理？？??
@@ -57,8 +57,8 @@ static int recover_from_log_disk()
 	return 0;
 }
 
-/* 对提交的事务进行实际写入磁盘的操作，写入实质上是把先前事务已拷贝到log disk的数据，
- * 拷贝写入到实际的数据块中。
+/* 对提交的事务进行实际写入磁盘的操作，写入实质上是把先前事务已拷贝到磁盘上日志块的数据，
+ * 再拷贝到磁盘上对应的数据块中。
  *
  * 这里才是真正写入磁盘的地方，之前的icache是通过把数据传到bcache来写入磁盘，而bcache
  * 实际上是借助logging layer这个中间层，先拷贝到日志磁盘块，然后在这里才是真正写入数据
@@ -69,7 +69,7 @@ static int recover_from_log_disk()
  *
  * 需要保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
  */
-static int write_to_disk(int is_recover)
+static int write_to_data_disk(int is_recover)
 {
 	struct cache_block *log_bbuf, *data_bbuf;
 	for (int i = 0; i < log.head.ncopy; ++i) // 提交的已copy到日志块的块数，即我们要实际写到磁盘块的块数
@@ -116,11 +116,16 @@ static int write_log_head_to_disk()
 	return 0;
 }
 
-/* 根据头日志块记录的bcache缓存块与普通日志块的映射关系，把数据从bcache拷贝到普通日志块，
- * 之后提交的时候会通过调用write_to_disk实际写入磁盘。
+/* 根据头日志块记录的bcache缓存块与普通日志块的映射关系，把数据从bcache拷贝到磁盘上对应的普通日志块，
+ * 之后提交的时候会通过调用write_to_disk再把磁盘上普通日志块的数据拷贝到对应的磁盘数据块。
  */
-static int copy_to_log()
+static int copy_to_log_disk()
 {
 }
 
-
+/* 提供的实际写入磁盘的接口函数，把要写的数据块的块号放入log head数组，确立一个空闲的普通日志块与之对应，
+ * 之后copy_to_log会根据这个映射关系，把bcache缓存块写到磁盘上的log日志块。
+ */
+int write_log_head(struct cache_block *bbuf)
+{
+}
