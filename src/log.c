@@ -81,7 +81,11 @@ static int write_to_data_disk(int is_recover)
 		memmove(data_bbuf->data, log_bbuf->data, BLOCK_SIZE);
 		if (disk_write(data_bbuf) == -1)
 			return -1;
-		// to do: have something with is_recover argument
+
+		if (is_recover == 0) // 因为 write_log_head() 那里为了避免后面缓冲块被回收而增加了引用
+			if (block_unlock_then_reduce_ref(write_log_head) == -1)
+				return -1;
+
 		if (block_unlock_then_reduce_ref(data_bbuf) == -1)
 			return -1;
 		if (block_unlock_then_reduce_ref(log_bbuf) == -1)
@@ -128,4 +132,28 @@ static int copy_to_log_disk()
  */
 int write_log_head(struct cache_block *bbuf)
 {
+	if (log.head.ncopy == superblock.log_block_num - 1) // 当前这个事务已慢，无多余的空闲日志块
+		return -1;
+	if (log.syscall_num < 1) // 代表运行前没有began_log，不在事务内，当然如果不在事务内也不一定能通过这个发现
+		return -1;
+
+	if (pthread_mutex_lock(&log.log_lock) == -1)
+		return -1;
+	int i = 0;
+	for (; i < log.head.ncopy; ++i)
+		if (log.head.logs[i] == bbuf->blockno) // 吸收，不用做任何处理，因为此时没有实际提交写磁盘，所以下次写磁盘用的数据就是这个新的
+		{
+			if (pthread_mutex_unlock(&log.log_lock) == -1)
+				return -1;
+			return 0;
+		}
+
+	log.head.logs[i] = bbuf->blockno;
+	++log.head.ncopy;
+	if (block_increase_ref(bbuf) == -1) // 之后要用到这个缓存块，不让其被回收，提高效率（不然只会的block_read可能要重新加载）
+		return -1;
+
+	if (pthread_mutex_unlock(&log.log_lock) == -1)
+		return -1;
+	return 0;
 }
