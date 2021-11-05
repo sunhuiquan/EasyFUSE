@@ -50,8 +50,8 @@ static int init_disk(const char *path)
 	// 2.设置superblock，最后写入磁盘
 
 	/* 现在未加入日志支持，无logging layer的情况
-	 * 0          | 1           | 2 ...        | 2+inode块数  | 34+block块数 ...
-	 * boot block | super block | inode blocks | bitmap blocks | data blocks
+	 * 0          | 1           | 2 ...      | 2+n_log      | 2+n_log+n_inode| 2+n_log+n_inode+n_bitmap
+	 * boot block | super block | log blocks | inode blocks | bitmap blocks  | data blocks
 	 *
 	 * 注意我们的设计的逻辑块是从0开始计数的，这很重要。
 	 */
@@ -78,12 +78,14 @@ static int init_disk(const char *path)
 
 	superblock.magic = MAGIC_NUMBER;
 
-	superblock.inode_block_startno = 2;
-	superblock.inode_block_num = (superblock.block_num - 34) / 17; // 1 : 16 的比例
-	superblock.bitmap_block_startno = 2 + superblock.inode_block_num;
+	superblock.log_block_startno = 2;
+	superblock.log_block_num = 30;
+	superblock.inode_block_startno = superblock.log_block_startno + superblock.log_block_num;
+	superblock.inode_block_num = superblock.block_num / 20; // 约 1 : 20 的比例
+	superblock.bitmap_block_startno = superblock.inode_block_startno + superblock.inode_block_num;
 	superblock.bitmap_block_num = 32;
-	superblock.data_block_startno = 32 + superblock.bitmap_block_startno;
-	superblock.data_block_num = superblock.block_num - 34 - superblock.inode_block_num;
+	superblock.data_block_startno = superblock.bitmap_block_startno + superblock.bitmap_block_num;
+	superblock.data_block_num = superblock.block_num - 2 - superblock.log_block_num - superblock.inode_block_num - superblock.bitmap_block_num;
 
 	if (lseek(disk_fd, 1 * BLOCK_SIZE, SEEK_SET) == -1)
 		return -1;
@@ -97,6 +99,7 @@ static int init_disk(const char *path)
 	// 3.设置bitmap块，我们的bitmap_set_or_clear实现是没有缓存中间层，直接读写磁盘的
 
 	/* 初始化bitmap块,初始化时除了数据块全部设置成1，因为只有数据块需要使用这个 */
+	// to do 设置 bitmap块为1 ??？？
 	for (int i = 0; i < superblock.bitmap_block_startno; ++i)
 		if (bitmap_set_or_clear(i, 1) == -1)
 			return -1;
