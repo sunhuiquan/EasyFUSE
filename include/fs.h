@@ -13,10 +13,11 @@
  * 另一种情况是如write这个系统调用，当写一个大文件的时候，如果写入非常多的数据，那么会需要大量的log block，可能
  * 当前这个日志块不够用，所以write如果需要的情况需要切割成多个写，因为超过最大容量的话是等不到够用的时候的。
  *
- * 一些如unlink的操作，可能需要写多个bitmap块，不过我们这里保证了bitmap的块数量比日志块数量小，所以不用考虑切分，
+ * 一些如unlink的操作，可能需要写多个bitmap块，不过我们这里保证了bitmap的块数量比MAX_WRITE_SYSCALLS小，所以不用考虑切分，
  * 如果当前的日志块不够用的时候unlink会等到够用，而肯定有这个时候的。
  */
-#define LOG_BLOCK_NUM 50
+#define MAX_WRITE_SYSCALLS 35 // 假设一个系统调用最多写的块数，这个会限制一个write最大的写使用块数
+#define LOG_BLOCK_NUM (3 * MAX_WRITE_SYSCALLS)
 
 // 我们的块号从 0 开始，另外 block 0 是 boot block，用不到
 // super block 的块号是 1

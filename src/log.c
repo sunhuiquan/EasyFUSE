@@ -13,6 +13,7 @@ static int write_to_data_disk(int is_recover);
 static int disk_read_log_head();
 static int write_log_head_to_disk();
 static int copy_to_log_disk();
+static int commit();
 
 /**
  * 原理？？??
@@ -196,3 +197,86 @@ static int commit()
 	}
 	return 0; // 无事务需要提交??
 }
+
+/* log.head.ncopy是实际已经使用的普通日志块数，(log.syscall_num + 1)是已进入的系统调用数
+ * (但还没退出事务转换成ncopy)加上即将进事务的自己，-1是去掉头结点日志块。
+ *
+ * in_transaction()进入事务，log.syscall_num会+1，这时候还没有实际执行写系统调用，所以不知道真实写使用
+ * 的日志块数，所以我们使用MAX_WRITE_SYSCALLS这个最大的作为猜想值，这显然会导致过度估计对日志块的使用量
+ * (除了write、unlink其他的写相关的系统调用一般用不到多少）；
+ * 然后具体地执行写系统调用（内部是通过调用一次或多次write_log_head()，把要写的数据块的块号放入log head
+ * 数组，确立一或多个空闲普通日志块与之对应（一次调用确立一个），然后commit的时候会经过copy_to_log_disk()
+ * 和write_to_data_disk(0)来实际写入磁盘，并这个过程中实际提升了ncopy的值；
+ * 最后out_transaction()退出事务，syscall_num会-1，因为之前无法确定的写使用日志块数已经增加到ncopy了，
+ * 中间有个过程是syscall_num没有-1而且ncopy增加的过程，这里会过度增加认为的使用日志块数，不过并不影响，
+ * 之后退出事务就会syscall_num -1变成真实值。
+ *
+ * 批处理commit将多个写系统调用使用的日志块，延迟写到对应的磁盘数据块，直到??
+ */
+
+/* 进入一个事务（不是事务开始，因为这个日志为了效率采用批处理的方式，多个进程的写系统调用可以在同一个进程中）。
+ * 这样一系列的begin_op结果会导致多个系统调用放到一个事务里面??
+ *
+ * 需要确保一次操作不会写的块数超过MAX_WRITE_SYSCALLS。
+ */
+int in_transaction()
+{
+	if (pthread_mutex_lock(&log.log_lock) == -1)
+		return -1;
+	while (1)
+	{
+		if (log.is_committing)
+		{
+			// sleep(&log, &log.lock);
+		}
+
+		else if (log.head.ncopy + (log.syscall_num + 1) * MAX_WRITE_SYSCALLS > LOG_BLOCK_NUM - 1)
+		{
+			// this op might exhaust log space; wait for commit.
+			// sleep(&log, &log.lock);
+		}
+		else
+		{
+			log.syscall_num += 1;
+			if (pthread_mutex_unlock(&log.log_lock) == -1)
+				return -1;
+			break;
+		}
+	}
+}
+
+// called at the end of each FS system call.
+// commits if this was the last outstanding operation.
+// int out_transaction()
+// {
+// 	int do_commit = 0;
+
+// 	acquire(&log.lock);
+// 	log.outstanding -= 1;
+// 	if (log.committing)
+// 		panic("log.committing");
+// 	if (log.outstanding == 0)
+// 	{
+// 		do_commit = 1;
+// 		log.committing = 1;
+// 	}
+// 	else
+// 	{
+// 		// begin_op() may be waiting for log space,
+// 		// and decrementing log.outstanding has decreased
+// 		// the amount of reserved space.
+// 		wakeup(&log);
+// 	}
+// 	release(&log.lock);
+
+// 	if (do_commit)
+// 	{
+// 		// call commit w/o holding locks, since not allowed
+// 		// to sleep with locks.
+// 		commit();
+// 		acquire(&log.lock);
+// 		log.committing = 0;
+// 		wakeup(&log);
+// 		release(&log.lock);
+// 	}
+// }
