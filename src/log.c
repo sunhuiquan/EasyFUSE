@@ -11,13 +11,14 @@
 static int recover_from_log_disk();
 static int copy_to_disk(int is_recover);
 static int disk_read_log_head();
+static int write_log_head_to_disk();
 
 /**
  * 原理？？??
  */
 struct log_head
 {
-	int ncopy;					 // 如果已提交，那么非0，代表已把数据从bcache拷贝到日志块的块数
+	int ncopy;					 // 如果非0代表事务已提交，值代表已把数据从bcache拷贝到日志块的块数
 								 // 注意这个ncopy是非头节点的日志块，所以最多是LOG_BLOCK_NUM - 1个
 	int logs[LOG_BLOCK_NUM - 1]; // 每个日志块要写入的数据块逻辑块号，-1代表这全都是普通日志块
 };
@@ -49,7 +50,9 @@ static int recover_from_log_disk()
 		return -1;
 	if (copy_to_disk(1) == -1)
 		return -1;
-	// to do
+	log.head.ncopy = 0;					// 恢复事务未提交状态（提交数为0）
+	if (write_log_head_to_disk() == -1) // ??
+		return -1;
 	return 0;
 }
 
@@ -77,7 +80,7 @@ static int copy_to_disk(int is_recover)
 		memmove(data_bbuf->data, log_bbuf->data, BLOCK_SIZE);
 		if (disk_write(data_bbuf) == -1)
 			return -1;
-
+		// to do: have something with is_recover argument
 		if (block_unlock_then_reduce_ref(data_bbuf) == -1)
 			return -1;
 		if (block_unlock_then_reduce_ref(log_bbuf) == -1)
@@ -93,6 +96,20 @@ static int disk_read_log_head()
 	if (bbuf == NULL)
 		return -1;
 	memmove(&log.head, bbuf->data, sizeof(struct log_head));
+	if (block_unlock_then_reduce_ref(bbuf) == -1)
+		return -1;
+	return 0;
+}
+
+/* 将内存中的头节点日志块写入磁盘 */
+static int write_log_head_to_disk()
+{
+	struct cache_block *bbuf;
+	if ((bbuf = block_read(superblock.log_block_startno)) == NULL)
+		return -1;
+	memmove(bbuf->data, &log.head, sizeof(struct log_head));
+	if (disk_write(bbuf) == -1)
+		return -1;
 	if (block_unlock_then_reduce_ref(bbuf) == -1)
 		return -1;
 	return 0;
