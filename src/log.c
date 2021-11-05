@@ -17,8 +17,9 @@ static int disk_read_log_head();
  */
 struct log_head
 {
-	int ncopy;				 // 如果已提交，那么非0，代表已把数据从bcache拷贝到日志块的块数
-	int logs[LOG_BLOCK_NUM]; // 每个日志块要写入的数据块逻辑块号
+	int ncopy;					 // 如果已提交，那么非0，代表已把数据从bcache拷贝到日志块的块数
+								 // 注意这个ncopy是非头节点的日志块，所以最多是LOG_BLOCK_NUM - 1个
+	int logs[LOG_BLOCK_NUM - 1]; // 每个日志块要写入的数据块逻辑块号，-1代表这全都是普通日志块
 };
 
 struct log
@@ -61,9 +62,28 @@ static int recover_from_log_disk()
  *
  * 调用这个函数有两种途径，一个是日志层初始化的时候调用，另一种是写系统调用导致的，这两个
  * 方式的操作有所不同，所以需要is_recover这个参数体现是从哪一种途径调用的。
+ *
+ * 需要保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
  */
 static int copy_to_disk(int is_recover)
 {
+	struct cache_block *log_bbuf, *data_bbuf;
+	for (int i = 0; i < log.head.ncopy; ++i) // 提交的已copy到日志块的块数，即我们要实际写到磁盘块的块数
+	{
+		if ((log_bbuf = block_read(superblock.log_block_startno + i + 1)) == NULL) // +1 避开头结点
+			return NULL;
+		if ((data_bbuf = block_read(log.head.logs[i])) == NULL) // logs是去掉头结点日志块开始的
+			return NULL;
+		memmove(data_bbuf->data, log_bbuf->data, BLOCK_SIZE);
+		if (disk_write(data_bbuf) == -1)
+			return -1;
+
+		if (block_unlock_then_reduce_ref(data_bbuf) == -1)
+			return -1;
+		if (block_unlock_then_reduce_ref(log_bbuf) == -1)
+			return -1;
+	}
+	return 0;
 }
 
 /* 从磁盘读取头日志块到内存 */

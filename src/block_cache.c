@@ -106,14 +106,6 @@ struct cache_block *block_read(int blockno)
 	return pcb;
 }
 
-/* 把内存块的内容写到磁盘上，此时参数pcb这个缓冲块指针是持有锁的 */
-int block_write(struct cache_block *pcb)
-{
-	if (disk_write(pcb) == -1)
-		return -1;
-	return 0;
-}
-
 /* 释放锁，并减少这个缓存数据块的引用计数，如果引用计数降低到0，那么会回收这个缓存块 */
 int block_unlock_then_reduce_ref(struct cache_block *bbuf)
 {
