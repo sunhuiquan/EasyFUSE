@@ -247,36 +247,47 @@ int in_transaction()
 
 // called at the end of each FS system call.
 // commits if this was the last outstanding operation.
-// int out_transaction()
-// {
-// 	int do_commit = 0;
+int out_transaction()
+{
+	int do_commit = 0;
 
-// 	acquire(&log.lock);
-// 	log.outstanding -= 1;
-// 	if (log.committing)
-// 		panic("log.committing");
-// 	if (log.outstanding == 0)
-// 	{
-// 		do_commit = 1;
-// 		log.committing = 1;
-// 	}
-// 	else
-// 	{
-// 		// begin_op() may be waiting for log space,
-// 		// and decrementing log.outstanding has decreased
-// 		// the amount of reserved space.
-// 		wakeup(&log);
-// 	}
-// 	release(&log.lock);
+	if (pthread_mutex_lock(&log.log_lock) == -1)
+		return -1;
+	--log.syscall_num;
 
-// 	if (do_commit)
-// 	{
-// 		// call commit w/o holding locks, since not allowed
-// 		// to sleep with locks.
-// 		commit();
-// 		acquire(&log.lock);
-// 		log.committing = 0;
-// 		wakeup(&log);
-// 		release(&log.lock);
-// 	}
-// }
+	// 只有syscall_num为0的时候才可能提交，而处于提交状态的时候不可能有进入事务的，所以不可能有在提交状态下退出的情况
+	if (log.is_committing)
+		return -1;
+
+	if (log.syscall_num == 0)
+	{
+		do_commit = 1;
+		log.is_committing = 1; // 此时syscall_num为0，进入提交状态
+	}
+	else
+	{
+		// begin_op() may be waiting for log space,
+		// and decrementing log.outstanding has decreased
+		// the amount of reserved space.
+		wakeup(&log); // ??
+	}
+
+	if (pthread_mutex_unlock(&log.log_lock) == -1)
+		return -1;
+
+	/* 使用do_commit本地变量作标志，不用is_committing，这是为了防止设置is_committing为1，
+	 * 并在判断完且重置为0的情况之前切换到别的进程，导致竞争错误，另一种思路是直接不释放锁，
+	 * 一直保持锁到判断完重置为0后再释放锁，但这会导致锁的粒度太大，导致并发性能低下。
+	 */
+	if (do_commit)
+	{
+		commit(); // 提交
+		if (pthread_mutex_lock(&log.log_lock) == -1)
+			return -1;
+		log.is_committing = 0; // 提交完成
+		wakeup(&log);
+		if (pthread_mutex_unlock(&log.log_lock) == -1)
+			return -1;
+	}
+	return 0;
+}
