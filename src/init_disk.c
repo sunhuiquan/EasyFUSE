@@ -79,7 +79,7 @@ static int init_disk(const char *path)
 	superblock.magic = MAGIC_NUMBER;
 
 	superblock.log_block_startno = 2;
-	superblock.log_block_num = 30;
+	superblock.log_block_num = LOG_BLOCK_NUM;
 	superblock.inode_block_startno = superblock.log_block_startno + superblock.log_block_num;
 	superblock.inode_block_num = superblock.block_num / 20; // 约 1 : 20 的比例
 	superblock.bitmap_block_startno = superblock.inode_block_startno + superblock.inode_block_num;
