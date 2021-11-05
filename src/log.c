@@ -67,7 +67,7 @@ static int recover_from_log_disk()
  * 调用这个函数有两种途径，一个是日志层初始化的时候调用，另一种是写系统调用导致的，这两个
  * 方式的操作有所不同，所以需要is_recover这个参数体现是从哪一种途径调用的。
  *
- * 需要保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
+ * write_log_head()保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
  */
 static int write_to_data_disk(int is_recover)
 {
@@ -122,9 +122,29 @@ static int write_log_head_to_disk()
 
 /* 根据头日志块记录的bcache缓存块与普通日志块的映射关系，把数据从bcache拷贝到磁盘上对应的普通日志块，
  * 之后提交的时候会通过调用write_to_disk再把磁盘上普通日志块的数据拷贝到对应的磁盘数据块。
+ *
+ * write_log_head()保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
  */
 static int copy_to_log_disk()
 {
+	struct cache_block *log_bbuf, *data_bbuf;
+	for (int i = 0; i < log.head.ncopy; ++i)
+	{
+		if ((data_bbuf = block_read(log.head.logs[i])) == NULL)
+			return -1;
+		if ((log_bbuf = block_read(superblock.log_block_startno + i + 1)) == NULL)
+			return -1;
+
+		memmove(log_bbuf->data, data_bbuf->data, BLOCK_SIZE);
+		if (disk_write(log_bbuf) == -1)
+			return -1;
+
+		if (block_unlock_then_reduce_ref(log_bbuf) == -1)
+			return -1;
+		if (block_unlock_then_reduce_ref(data_bbuf) == -1)
+			return -1;
+	}
+	return 0;
 }
 
 /* 提供的实际写入磁盘的接口函数，把要写的数据块的块号放入log head数组，确立一个空闲的普通日志块与之对应，
@@ -132,9 +152,10 @@ static int copy_to_log_disk()
  */
 int write_log_head(struct cache_block *bbuf)
 {
-	if (log.head.ncopy == superblock.log_block_num - 1) // 当前这个事务已慢，无多余的空闲日志块
+	// 当前这个事务已满，无多余的空闲日志块，保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1
+	if (log.head.ncopy == superblock.log_block_num - 1)
 		return -1;
-	if (log.syscall_num < 1) // 代表运行前没有began_log，不在事务内，当然如果不在事务内也不一定能通过这个发现
+	if (log.syscall_num < 1) // 代表运行前没有began_log，不在事务内，不过如果不在事务内不一定能通过这个发现
 		return -1;
 
 	if (pthread_mutex_lock(&log.log_lock) == -1)
