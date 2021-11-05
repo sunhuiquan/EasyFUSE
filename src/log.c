@@ -9,9 +9,10 @@
 #include <pthread.h>
 
 static int recover_from_log_disk();
-static int copy_to_disk(int is_recover);
+static int write_to_disk(int is_recover);
 static int disk_read_log_head();
 static int write_log_head_to_disk();
+static int copy_to_log();
 
 /**
  * 原理？？??
@@ -48,7 +49,7 @@ static int recover_from_log_disk()
 {
 	if (disk_read_log_head() == -1)
 		return -1;
-	if (copy_to_disk(1) == -1)
+	if (write_to_disk(1) == -1)
 		return -1;
 	log.head.ncopy = 0;					// 恢复事务未提交状态（提交数为0）
 	if (write_log_head_to_disk() == -1) // ??
@@ -68,7 +69,7 @@ static int recover_from_log_disk()
  *
  * 需要保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
  */
-static int copy_to_disk(int is_recover)
+static int write_to_disk(int is_recover)
 {
 	struct cache_block *log_bbuf, *data_bbuf;
 	for (int i = 0; i < log.head.ncopy; ++i) // 提交的已copy到日志块的块数，即我们要实际写到磁盘块的块数
@@ -114,3 +115,12 @@ static int write_log_head_to_disk()
 		return -1;
 	return 0;
 }
+
+/* 根据头日志块记录的bcache缓存块与普通日志块的映射关系，把数据从bcache拷贝到普通日志块，
+ * 之后提交的时候会通过调用write_to_disk实际写入磁盘。
+ */
+static int copy_to_log()
+{
+}
+
+
