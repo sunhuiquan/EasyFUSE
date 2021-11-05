@@ -178,3 +178,21 @@ int write_log_head(struct cache_block *bbuf)
 		return -1;
 	return 0;
 }
+
+/* 事务提交?? */
+static int commit()
+{
+	if (log.head.ncopy > 0)
+	{
+		if (copy_to_log_disk() == -1)
+			return -1; // Write modified blocks from cache to log
+		if (write_log_head_to_disk() == -1)
+			return -1; // Write header to disk -- the real commit
+		if (write_to_data_disk(0) == -1)
+			return -1;		// Now install writes to home locations
+		log.head.ncopy = 0; // ??
+		if (write_log_head_to_disk() == -1)
+			return -1; // Erase the transaction from the log
+	}
+	return 0; // 无事务需要提交??
+}
