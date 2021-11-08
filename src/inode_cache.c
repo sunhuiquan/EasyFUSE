@@ -5,6 +5,7 @@
 
 #include "inode_cache.h"
 #include "disk.h"
+#include "log.h"
 #include <stdlib.h>
 #include <string.h>
 #include <util.h>
@@ -215,11 +216,19 @@ struct inode *inode_allocate(ushort type)
 
 		// 对该块上的 INODE_NUM_PER_BLOCK(16) 个 disk inode 结构遍历
 		for (int j = 0; j < INODE_NUM_PER_BLOCK; ++j)
+		{
+			pdi = (struct disk_inode *)&bbuf->data[j * sizeof(struct disk_inode)];
 			if (pdi->type == 0)
 			{
-				// to do??
+				memset(pdi, 0, sizeof(struct disk_inode));
+				pdi->type = type;
+				if (write_log_head(bbuf) == -1)
+					return NULL;
+				if (block_unlock_then_reduce_ref(bbuf) == -1)
+					return NULL;
 				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
 			}
+		}
 
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
 			return NULL;
