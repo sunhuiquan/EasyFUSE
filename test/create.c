@@ -2,6 +2,9 @@
 #include "util.h"
 #include "inode.h"
 #include "disk.h"
+#include "inode_cache.h"
+#include "block_cache.h"
+#include "log.h"
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -14,8 +17,14 @@ int main(int argc, char *argv[])
 		exit(EXIT_FAILURE);
 	}
 
-	if (load_disk(argv[1]) == -1) // 加载磁盘
+	if (load_disk(argv[1]) == -1) // 加载磁盘，读取superblock到内存的全局变量中
 		err_exit("load_disk(argv[1])");
+	if (inode_cache_init() == -1) // 初始化 inode cache
+		err_exit("inode_cache_init");
+	if (init_block_cache_block() == -1) // 初始化 block cache
+		err_exit("init_block_cache_block");
+	if (init_log() == -1) // 初始化log，并进行磁盘恢复操作
+		err_exit("init_log");
 
 	if (create("/a/", FILE_DIR) == NULL) // 创建 /a/ 目录文件测试
 		err_exit("create(\"/a/\", FILE_DIR)");

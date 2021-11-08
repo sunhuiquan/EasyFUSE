@@ -52,7 +52,7 @@ static int recover_from_log_disk()
 {
 	if (disk_read_log_head() == -1)
 		return -1;
-	if (write_to_disk(1) == -1)
+	if (write_to_data_disk(1) == -1)
 		return -1;
 	log.head.ncopy = 0;					// 恢复事务未提交状态（提交数为0）
 	if (write_log_head_to_disk() == -1) // ??原子性考虑
@@ -124,7 +124,7 @@ static int write_log_head_to_disk()
 }
 
 /* 根据头日志块记录的bcache缓存块与普通日志块的映射关系，把数据从bcache拷贝到磁盘上对应的普通日志块，
- * 之后提交的时候会通过调用write_to_disk再把磁盘上普通日志块的数据拷贝到对应的磁盘数据块。
+ * 之后提交的时候会通过调用write_to_data_disk再把磁盘上普通日志块的数据拷贝到对应的磁盘数据块。
  *
  * write_log_head()保证log.head.ncopy的值不超过普通日志块的数量LOG_BLOCK_NUM - 1，避免溢出。
  */

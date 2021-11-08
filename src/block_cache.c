@@ -2,6 +2,7 @@
 
 #include "block_cache.h"
 #include "disk.h"
+#include "log.h"
 #include <stdlib.h>
 
 struct cache_list bcache;
