@@ -55,7 +55,7 @@ static int recover_from_log_disk()
 	if (write_to_disk(1) == -1)
 		return -1;
 	log.head.ncopy = 0;					// 恢复事务未提交状态（提交数为0）
-	if (write_log_head_to_disk() == -1) // ??
+	if (write_log_head_to_disk() == -1) // ??原子性考虑
 		return -1;
 	return 0;
 }
@@ -182,22 +182,25 @@ int write_log_head(struct cache_block *bbuf)
 	return 0;
 }
 
-/* 事务提交?? */
+/* 事务提交，先通过头结点中存储的对应关系，把缓存块写到磁盘上的日志块，然后更新磁盘上的头日志块，然后把磁盘上
+ * 的日志块数据拷贝写到磁盘上的对应磁盘块，最后事务完成，ncopy变为0，重新重新磁盘上的头日志块信息。
+ */
 static int commit()
 {
 	if (log.head.ncopy > 0)
 	{
 		if (copy_to_log_disk() == -1)
-			return -1; // Write modified blocks from cache to log
-		if (write_log_head_to_disk() == -1)
-			return -1; // Write header to disk -- the real commit
+			return -1;
+		if (write_log_head_to_disk() == -1) // 原子性考虑??？？
+			return -1;
 		if (write_to_data_disk(0) == -1)
-			return -1;		// Now install writes to home locations
-		log.head.ncopy = 0; // ??
+			return -1;
+		log.head.ncopy = 0; // 原子性考虑??？？
 		if (write_log_head_to_disk() == -1)
-			return -1; // Erase the transaction from the log
+			return -1;
+		return 0;
 	}
-	return 0; // 无事务需要提交??
+	return -1; // 正常调用顺序不可能出现无事务提交的情况
 }
 
 /* log.head.ncopy是实际已经使用的普通日志块数，(log.syscall_num + 1)是已进入的系统调用数
