@@ -18,7 +18,7 @@
 // static 函数，仅在此源文件范围内使用，不放在头文件
 static int get_data_blockno_by_inode(struct inode *pi, uint off);
 
-struct inode_cache icache;
+static struct inode_cache icache;
 
 /* 初始化 inode cache 缓存，其实就是初始化它的互斥锁 */
 int inode_cache_init()

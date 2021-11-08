@@ -5,7 +5,7 @@
 #include "log.h"
 #include <stdlib.h>
 
-struct cache_list bcache;
+static struct cache_list bcache;
 
 /* 初始化缓存块结构 */
 int init_block_cache_block()

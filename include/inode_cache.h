@@ -8,8 +8,6 @@
 #include "inode.h"
 #include <pthread.h>
 
-extern struct inode_cache icache;
-
 #define CACHE_INODE_NUM 50
 
 struct inode_cache

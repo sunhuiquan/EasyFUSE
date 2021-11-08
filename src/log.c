@@ -19,7 +19,7 @@ static int commit();
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
 /**
- * 原理？？??
+ * 原理??
  */
 struct log_head
 {
@@ -228,7 +228,7 @@ static int commit()
  */
 
 /* 进入一个事务（不是事务开始，因为这个日志为了效率采用批处理的方式，多个进程的写系统调用可以在同一个进程中）。
- * 这样一系列的begin_op结果会导致多个系统调用放到一个事务里面??
+ * 这样一系列的begin_op结果会导致多个系统调用放到一个事务里面，通过批处理多个写系统调用只需要一次写磁盘。
  *
  * 需要确保一次操作不会写的块数超过MAX_WRITE_SYSCALLS。
  *

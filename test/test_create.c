@@ -26,7 +26,7 @@ int main(int argc, char *argv[])
 	if (init_log() == -1) // 初始化log，并进行磁盘恢复操作
 		err_exit("init_log");
 
-	if (wraper("/a/", FILE_DIR) == NULL) // 创建 /a/ 目录文件测试
+	if (wraper("/a/", FILE_DIR) == -1) // 创建 /a/ 目录文件测试
 		err_exit("create(\"/a/\", FILE_DIR)");
 
 	/* 非自动化测试，需要自己手动分析磁盘块得知结果是否正确 */

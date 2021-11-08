@@ -125,8 +125,11 @@ int balloc()
 			// 注意一定是无符号数右移，因为有符号数的>>右移会保持符号位不变
 			unsigned char bit = bbuf->data[j];
 			for (k = 0; k < 8; bit >>= 1, ++k)
-				if (bit & 1)
+				if (bit & 1 == 0)
 				{
+					bbuf->data[j]; // to do??
+					if (write_log_head(bbuf) == -1)
+						return -1;
 					if (block_unlock_then_reduce_ref(bbuf) == -1)
 						return -1;
 					if (block_zero(j * 8 + k) == -1)
@@ -140,14 +143,19 @@ int balloc()
 	return -1; // 无空闲数据块
 }
 
-/* 清空这个逻辑块号对应的磁盘上的物理块号（我们的对应关系是逻辑块号等于物理块号） */
+/* 清空这个逻辑块号对应的磁盘上的物理块号（我们的对应关系是逻辑块号等于物理块号）
+ *
+ * 需要注意init_log之后就不要直接使用disk_write了，因为disk_write可不管log层的锁机制，导致竞争错误。
+ */
 static int block_zero(int blockno)
 {
-	char zerobuf[BLOCK_SIZE];
-	memset(zerobuf, 0, sizeof(zerobuf));
-	if (lseek(disk_fd, blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
+	struct cache_block *bbuf;
+	if ((bbuf = block_read(blockno)) == NULL)
 		return -1;
-	if (write(disk_fd, zerobuf, BLOCK_SIZE) != BLOCK_SIZE)
+	memset(bbuf->data, 0, BLOCK_SIZE);
+	if (write_log_head(bbuf) == -1)
+		return -1;
+	if (block_unlock_then_reduce_ref(bbuf) == -1)
 		return -1;
 	return 0;
 }

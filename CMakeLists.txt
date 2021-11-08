@@ -15,4 +15,4 @@ add_executable(
   src/log.c
   src/fuse_fs_open.c
   src/util.c)
-target_include_directories(create_test PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(test_create PRIVATE ${PROJECT_SOURCE_DIR}/include)
