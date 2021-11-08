@@ -83,14 +83,25 @@ static int write_to_data_disk(int is_recover)
 			return -1;
 		memmove(data_bbuf->data, log_bbuf->data, BLOCK_SIZE);
 		if (disk_write(data_bbuf) == -1)
+		{
+			block_unlock_then_reduce_ref(data_bbuf);
+			block_unlock_then_reduce_ref(log_bbuf);
 			return -1;
+		}
 
 		if (is_recover == 0) // 因为 write_log_head() 那里为了避免后面缓冲块被回收而增加了引用
 			if (block_reduce_ref(data_bbuf) == -1)
+			{
+				block_unlock_then_reduce_ref(data_bbuf);
+				block_unlock_then_reduce_ref(log_bbuf);
 				return -1;
+			}
 
 		if (block_unlock_then_reduce_ref(data_bbuf) == -1)
+		{
+			block_unlock_then_reduce_ref(log_bbuf);
 			return -1;
+		}
 		if (block_unlock_then_reduce_ref(log_bbuf) == -1)
 			return -1;
 	}
@@ -140,10 +151,17 @@ static int copy_to_log_disk()
 
 		memmove(log_bbuf->data, data_bbuf->data, BLOCK_SIZE);
 		if (disk_write(log_bbuf) == -1)
+		{
+			block_unlock_then_reduce_ref(data_bbuf);
+			block_unlock_then_reduce_ref(log_bbuf);
 			return -1;
+		}
 
 		if (block_unlock_then_reduce_ref(log_bbuf) == -1)
+		{
+			block_unlock_then_reduce_ref(data_bbuf);
 			return -1;
+		}
 		if (block_unlock_then_reduce_ref(data_bbuf) == -1)
 			return -1;
 	}

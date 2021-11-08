@@ -152,7 +152,10 @@ int inode_free_address(struct inode *pi)
 			if (*pui)
 			{
 				if (block_free(*pui) == -1) // 释放数据块
+				{
+					block_unlock_then_reduce_ref(bbuf);
 					return -1;
+				}
 			}
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
 			return -1;
@@ -186,7 +189,10 @@ int inode_update(struct inode *pi)
 	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
 			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
 	if (write_log_head(bbuf) == -1)
+	{
+		block_unlock_then_reduce_ref(bbuf);
 		return -1;
+	}
 	if (block_unlock_then_reduce_ref(bbuf) == -1)
 		return -1;
 	return 0;
@@ -223,7 +229,10 @@ struct inode *inode_allocate(ushort type)
 				memset(pdi, 0, sizeof(struct disk_inode));
 				pdi->type = type;
 				if (write_log_head(bbuf) == -1)
+				{
+					block_unlock_then_reduce_ref(bbuf);
 					return NULL;
+				}
 				if (block_unlock_then_reduce_ref(bbuf) == -1)
 					return NULL;
 				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
@@ -344,7 +353,10 @@ int writeinode(struct inode *pi, void *src, uint off, uint n)
 		len = min(n - writen, BLOCK_SIZE - off % BLOCK_SIZE);
 		memmove(bbuf->data + (off % BLOCK_SIZE), src, len);
 		if (write_log_head(bbuf) == -1)
+		{
+			block_unlock_then_reduce_ref(bbuf);
 			return -1;
+		}
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
 			return -1;
 	}

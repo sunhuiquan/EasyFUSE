@@ -131,7 +131,10 @@ int balloc()
 				{
 					bbuf->data[j] &= (1 << k); // 设置对应位图位为1
 					if (write_log_head(bbuf) == -1)
+					{
+						block_unlock_then_reduce_ref(bbuf);
 						return -1;
+					}
 					if (block_unlock_then_reduce_ref(bbuf) == -1)
 						return -1;
 					if (block_zero(j * 8 + k) == -1)
@@ -156,7 +159,10 @@ static int block_zero(int blockno)
 		return -1;
 	memset(bbuf->data, 0, BLOCK_SIZE);
 	if (write_log_head(bbuf) == -1)
+	{
+		block_unlock_then_reduce_ref(bbuf);
 		return -1;
+	}
 	if (block_unlock_then_reduce_ref(bbuf) == -1)
 		return -1;
 	return 0;
@@ -178,7 +184,10 @@ int block_free(int blockno)
 		return -1;
 	bbuf->data[b] &= ~(1 << c);
 	if (write_log_head(bbuf) == -1)
+	{
+		block_unlock_then_reduce_ref(bbuf);
 		return -1;
+	}
 	if (block_unlock_then_reduce_ref(bbuf) == -1)
 		return -1;
 }
