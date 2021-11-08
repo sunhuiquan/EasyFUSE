@@ -260,6 +260,7 @@ int in_transaction()
 	}
 }
 
+/* 离开事务，如果离开时无系统调用处于事务中，则提交事务 */
 int out_transaction()
 {
 	int do_commit = 0;

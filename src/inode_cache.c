@@ -174,8 +174,7 @@ int inode_free_address(struct inode *pi)
  * 是低效率的，但实际上并不用担心这个效率，因为实际上是写入bcache缓存，没有实际写入磁盘，
  * 之后是通过block cache层再实际写到磁盘中的。
  *
- * 而block cache层的写入磁盘是明明确确的写回（不是直接写入，而是先在内存中保存更改），
- * 这个bcache缓存写可以发生了很多次，但只有最后一次才是实际写入磁盘的操作，提高了效率。
+ * 而block cache层的写入磁盘是借助日志层，而不是直接写入。
  */
 int inode_update(struct inode *pi)
 {

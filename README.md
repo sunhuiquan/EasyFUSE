@@ -91,7 +91,7 @@ dd if=/dev/zero of=diskimg bs=1024 count=10000
 - [x] 实现Inode块、Inode块缓冲的加锁机制
 - [x] 实现数据块、数据块缓冲的加锁机制
 - [x] CMake编译项目
-- [ ] 实现logging layer，日志机制
+- [x] 实现logging layer，日志机制
 - [ ] 实现创建文件功能并测试
 - [ ] 实现libfuse open API
 - [ ] ...
