@@ -228,6 +228,8 @@ static int commit()
  * 有个竞争需要注意，很可能唤醒多个，第一个加到锁的利用完了那个资源，然后其他被唤醒的线程就白白被唤醒了，所
  * 以需要再次循环检测条件，让这部分白白被唤醒的线程重新进入阻塞等待的状态；另外判断的条件可能是有种，照样需
  * 要再次重新循环一次判断，知道自己是因为什么具体的条件改变而被唤醒的。
+ *
+ * “POSIX规范为了简化实现，允许pthread_cond_signal在实现的时候可以唤醒不止一个线程。” ——APUE
  */
 int in_transaction()
 {
@@ -237,13 +239,13 @@ int in_transaction()
 	{
 		if (log.is_committing)
 		{
-			// sleep(&log, &log.lock);
+			if (pthread_cond_wait(&cond, &log.log_lock) != 0)
+				return -1;
 		}
-
 		else if (log.head.ncopy + (log.syscall_num + 1) * MAX_WRITE_SYSCALLS > LOG_BLOCK_NUM - 1)
 		{
-			// this op might exhaust log space; wait for commit.
-			// sleep(&log, &log.lock);
+			if (pthread_cond_wait(&cond, &log.log_lock) != 0)
+				return -1;
 		}
 		else
 		{
@@ -255,8 +257,6 @@ int in_transaction()
 	}
 }
 
-// called at the end of each FS system call.
-// commits if this was the last outstanding operation.
 int out_transaction()
 {
 	int do_commit = 0;
@@ -276,10 +276,8 @@ int out_transaction()
 	}
 	else
 	{
-		// begin_op() may be waiting for log space,
-		// and decrementing log.outstanding has decreased
-		// the amount of reserved space.
-		wakeup(&log); // ??
+		if (pthread_cond_signal(&cond) != 0) // 非提交直接离开，大小条件改变，唤醒条件变量
+			return -1;
 	}
 
 	if (pthread_mutex_unlock(&log.log_lock) == -1)
@@ -294,8 +292,9 @@ int out_transaction()
 		commit(); // 提交
 		if (pthread_mutex_lock(&log.log_lock) == -1)
 			return -1;
-		log.is_committing = 0; // 提交完成
-		wakeup(&log);
+		log.is_committing = 0;
+		if (pthread_cond_signal(&cond) != 0) // 提交完成，is_committing条件改为0，唤醒条件变量
+			return -1;
 		if (pthread_mutex_unlock(&log.log_lock) == -1)
 			return -1;
 	}
