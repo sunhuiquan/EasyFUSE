@@ -35,7 +35,7 @@ struct log
 	pthread_mutex_t log_lock; // 互斥锁
 	struct log_head head;	  // 日志层的头节点块
 };
-struct log log;
+static struct log log;
 
 /* 初始化日志层，这是内核加载文件系统，文件系统初始化的一部分，是开机启动操作系统的一部分，
  * 你要考虑上次关机是否正常，比如因断电关机，所以检测磁盘上的logging layer进行日志恢复操作。
@@ -78,15 +78,15 @@ static int write_to_data_disk(int is_recover)
 	for (int i = 0; i < log.head.ncopy; ++i) // 提交的已copy到日志块的块数，即我们要实际写到磁盘块的块数
 	{
 		if ((log_bbuf = block_read(superblock.log_block_startno + i + 1)) == NULL) // +1 避开头结点
-			return NULL;
+			return -1;
 		if ((data_bbuf = block_read(log.head.logs[i])) == NULL) // logs是去掉头结点日志块开始的
-			return NULL;
+			return -1;
 		memmove(data_bbuf->data, log_bbuf->data, BLOCK_SIZE);
 		if (disk_write(data_bbuf) == -1)
 			return -1;
 
 		if (is_recover == 0) // 因为 write_log_head() 那里为了避免后面缓冲块被回收而增加了引用
-			if (block_unlock_then_reduce_ref(write_log_head) == -1)
+			if (block_reduce_ref(data_bbuf) == -1)
 				return -1;
 
 		if (block_unlock_then_reduce_ref(data_bbuf) == -1)

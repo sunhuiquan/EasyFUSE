@@ -19,4 +19,7 @@ struct inode *dir_find(struct inode *pdi, char *name);
 // 将name和inum组合成一条dirent结构，写入pdi这个目标inode结构，注意pdi是持有锁的
 int add_dirent_entry(struct inode *pdi, char *name, uint inum);
 
+/* wraper */
+int wraper(char *path, ushort type);
+
 #endif
