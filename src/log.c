@@ -152,6 +152,9 @@ static int copy_to_log_disk()
 
 /* 提供的实际写入磁盘的接口函数，把要写的数据块的块号放入log head数组，确立一个空闲的普通日志块与之对应，
  * 之后copy_to_log会根据这个映射关系，把bcache缓存块写到磁盘上的log日志块。
+ *
+ * 注意这个写磁盘的接口并不是调用了就立即写，而是当out_transaction离开事务且事务内部的写系统调用数为0，
+ * 调用commit提交，这个时候才真正地写磁盘操作，这个批处理，将多次写磁盘变成只写一次，提高效率。
  */
 int write_log_head(struct cache_block *bbuf)
 {
@@ -165,8 +168,10 @@ int write_log_head(struct cache_block *bbuf)
 		return -1;
 	int i = 0;
 	for (; i < log.head.ncopy; ++i)
-		if (log.head.logs[i] == bbuf->blockno) // 吸收，不用做任何处理，因为此时没有实际提交写磁盘，所以下次写磁盘用的数据就是这个新的
+		if (log.head.logs[i] == bbuf->blockno)
 		{
+			// 吸收，不用做任何处理，因为此时没有实际提交写磁盘（因为获得了锁，说明还没提交），
+			// 所以下次提交写磁盘用的数据直接就是这个新的缓存块，我们不用作任何操作
 			if (pthread_mutex_unlock(&log.log_lock) == -1)
 				return -1;
 			return 0;
@@ -214,9 +219,7 @@ static int commit()
  * 和write_to_data_disk(0)来实际写入磁盘，并这个过程中实际提升了ncopy的值；
  * 最后out_transaction()退出事务，syscall_num会-1，因为之前无法确定的写使用日志块数已经增加到ncopy了，
  * 中间有个过程是syscall_num没有-1而且ncopy增加的过程，这里会过度增加认为的使用日志块数，不过并不影响，
- * 之后退出事务就会syscall_num -1变成真实值。
- *
- * 批处理commit将多个写系统调用使用的日志块，延迟写到对应的磁盘数据块，直到??
+ * 之后退出事务就会syscall_num -1变成真实大小。
  */
 
 /* 进入一个事务（不是事务开始，因为这个日志为了效率采用批处理的方式，多个进程的写系统调用可以在同一个进程中）。
