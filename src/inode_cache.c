@@ -403,6 +403,11 @@ static int get_data_blockno_by_inode(struct inode *pi, uint off)
 		{
 			// 对应的地址未指向数据块，则分配一个并返回
 			blockno = indirect_addrs[boff] = balloc();
+			if (write_log_head(bbuf) == -1)
+			{
+				block_unlock_then_reduce_ref(bbuf);
+				return -1;
+			}
 		}
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
 			return -1;
