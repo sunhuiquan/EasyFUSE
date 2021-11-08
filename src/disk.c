@@ -86,6 +86,8 @@ int disk_write(struct cache_block *buf)
  * 注意非常重要的是，对于bitmap，为了方便我们直接读写磁盘设备，而没有中间层cache这32个bitmap块，因为
  * 实在是太麻烦了，不过只有查找空闲的磁盘块才用得到，也就是实际分配新的数据块的时候，而新建文件的频
  * 率并不是太多，可以接受这个效率(修改、查看文件(含目录文件等各种文件)都和这个无关)。
+ *
+ * 必须在初始化日志层之前使用，内部直接read和write，不通过日志层。
  */
 int bitmap_set_or_clear(int blockno, int is_set)
 {
@@ -127,7 +129,7 @@ int balloc()
 			for (k = 0; k < 8; bit >>= 1, ++k)
 				if (bit & 1 == 0)
 				{
-					bbuf->data[j]; // to do??
+					bbuf->data[j] &= (1 << k); // 设置对应位图位为1
 					if (write_log_head(bbuf) == -1)
 						return -1;
 					if (block_unlock_then_reduce_ref(bbuf) == -1)
@@ -160,10 +162,23 @@ static int block_zero(int blockno)
 	return 0;
 }
 
-/* 释放磁盘上的数据块，单纯就是把位图设置成0，不清零，因为balloc()分配新数据块的时候会初始化清零 */
+/* 释放磁盘上的数据块，单纯就是把位图设置成0，不清零，因为balloc()分配新数据块的时候会初始化清零
+ *
+ * 这个是在日志层之后使用，所以不能使用bitmap_set_or_clear，需要考虑日志操作。
+ */
 int block_free(int blockno)
 {
-	if (bitmap_set_or_clear(blockno, 0) == -1)
+	struct cache_block *bbuf;
+	uint a = blockno / BIT_NUM_BLOCK;
+	blockno %= BIT_NUM_BLOCK;
+	uint b = blockno / 8;
+	uint c = blockno % 8;
+
+	if ((bbuf = block_read(superblock.bitmap_block_startno + a)) == NULL)
 		return -1;
-	return 0;
+	bbuf->data[b] &= ~(1 << c);
+	if (write_log_head(bbuf) == -1)
+		return -1;
+	if (block_unlock_then_reduce_ref(bbuf) == -1)
+		return -1;
 }
