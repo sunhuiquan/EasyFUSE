@@ -15,6 +15,9 @@ static int write_log_head_to_disk();
 static int copy_to_log_disk();
 static int commit();
 
+// 使用条件变量，避免了不断轮询请求释放锁来检测条件，避免CPU时间浪费。
+static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
+
 /**
  * 原理？？??
  */
@@ -27,7 +30,6 @@ struct log_head
 
 struct log
 {
-	// struct spinlock lock; 自旋锁？？??
 	int syscall_num;		  // 当前正在写入日志块的写系统调用数量
 	int is_committing;		  // 是否正在提交（commit）
 	pthread_mutex_t log_lock; // 互斥锁
@@ -218,6 +220,14 @@ static int commit()
  * 这样一系列的begin_op结果会导致多个系统调用放到一个事务里面??
  *
  * 需要确保一次操作不会写的块数超过MAX_WRITE_SYSCALLS。
+ *
+ * 使用条件变量，避免了不断轮询请求释放锁来检测条件，避免CPU时间浪费，当out_transaction()调用改变条件后，
+ * 通过唤醒那些阻塞的条件变量，告知他们条件改变，然后让唤醒的条件变量请求锁后再次循环判断条件，得到处理。
+ *
+ * 标准上说唤醒只会唤醒一个线程，但是实际上实现很可能由于多处理器，导致惊群效应，唤醒了多个线程，他们直接也
+ * 有个竞争需要注意，很可能唤醒多个，第一个加到锁的利用完了那个资源，然后其他被唤醒的线程就白白被唤醒了，所
+ * 以需要再次循环检测条件，让这部分白白被唤醒的线程重新进入阻塞等待的状态；另外判断的条件可能是有种，照样需
+ * 要再次重新循环一次判断，知道自己是因为什么具体的条件改变而被唤醒的。
  */
 int in_transaction()
 {
