@@ -7,8 +7,8 @@ add_executable(init_disk src/init_disk.c src/disk.c src/block_cache.c
 target_include_directories(init_disk PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(
-  create_test
-  test/create.c
+  test_create
+  test/test_create.c
   src/disk.c
   src/inode_cache.c
   src/block_cache.c

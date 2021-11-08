@@ -179,7 +179,12 @@ int write_log_head(struct cache_block *bbuf)
 
 	log.head.logs[i] = bbuf->blockno;
 	++log.head.ncopy;
-	if (block_increase_ref(bbuf) == -1) // 之后要用到这个缓存块，不让其被回收，提高效率（不然只会的block_read可能要重新加载）
+
+	/* 这里这个地方非常关键，write_log_head调用完成后一般就会不再使用那个cache_block指针，因为它视角里是已经写入磁盘了，
+	 * 所以很有可能会降低引用，所以这里increase ref避免write_log_head调用完成后ref到0被重用，导致之后使用一个其他的新来
+	 * 的缓存块导致错误，这个ref增加直到disk_write完成，写入到磁盘，这时降低引用，因为此时磁盘内容就是最新的。
+	 */
+	if (block_increase_ref(bbuf) == -1)
 		return -1;
 
 	if (pthread_mutex_unlock(&log.log_lock) == -1)
