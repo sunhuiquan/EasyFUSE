@@ -6,6 +6,7 @@
 #include "util.h"
 #include "inode.h"
 #include "block_cache.h"
+#include "log.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>

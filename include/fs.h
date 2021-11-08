@@ -43,4 +43,18 @@ struct dirent
 	char name[MAX_NAME];
 };
 
+// 返回路径文件所在的目录的 inode，通过iget，返回未加锁，且已增加了引用计数
+struct inode *find_dir_inode(char *path, char *name);
+
+/* 通过目录 inode 查找该目录下对应 name 的 inode 并返回，通过iget，返回未加锁，且已增加了引用计数。
+ * (内存中调用iget就说明有新的对象指向了这个inode缓存，调用iget就会导致引用计数+1)
+ */
+struct inode *dir_find(struct inode *pdi, char *name);
+
+/* 获取当前层(比如中间的路径名，直到最后的文件名)的路径名 */
+char *current_dir_name(char *path, char *name);
+
+// 将name和inum组合成一条dirent结构，写入pdi这个目标inode结构，注意pdi是持有锁的
+int add_dirent_entry(struct inode *pdi, char *name, uint inum);
+
 #endif

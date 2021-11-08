@@ -18,9 +18,6 @@ static int commit();
 // 使用条件变量，避免了不断轮询请求释放锁来检测条件，避免CPU时间浪费。
 static pthread_cond_t cond = PTHREAD_COND_INITIALIZER;
 
-/**
- * 原理??
- */
 struct log_head
 {
 	int ncopy;					 // 如果非0代表事务已提交，值代表已把数据从bcache拷贝到日志块的块数

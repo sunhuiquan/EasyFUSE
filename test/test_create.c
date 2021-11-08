@@ -1,4 +1,4 @@
-#include "fuse_fs_open.h"
+#include "fuse_fs_calls.h"
 #include "util.h"
 #include "inode.h"
 #include "disk.h"
