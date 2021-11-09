@@ -99,7 +99,7 @@ static int init_disk(const char *path)
 	// 3.设置bitmap块，我们的bitmap_set_or_clear实现是没有缓存中间层，直接读写磁盘的
 
 	/* 初始化bitmap块,初始化时除了数据块全部设置成1，因为只有数据块需要使用这个 */
-	// to do 设置 bitmap块为1 ??？？
+	// to do 把所有非数据块设为1
 	for (int i = 0; i < superblock.bitmap_block_startno; ++i)
 		if (bitmap_set_or_clear(i, 1) == -1)
 			return -1;

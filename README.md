@@ -22,14 +22,18 @@
   简而言之，它作为一种通信机制，把内核对 VFS 接口的使用从内核态转发到用户态的我们实现的用户文件系统机制，然后用户文件系统把结果再通过 libfuse 发回内核，来完成对抽象文件系统(VFS)的实现。
 
   2. **分层设计：**
-     <!-- 1. disk layer
-     2. bitmap layer
-     3. block cache layer
-     4. log layer
-     5. inode cache layer
-     6. dictory layer
-     7. pathname layer
-     8. file descriptor layer -->
+     1. disk layer —— 读写磁盘的驱动代码（这里是用文件模拟），逻辑块与物理块映射关系；向上一层日志层提供读写磁盘的API。
+     2. log layer —— 向上一层block cache层提供写日志头信息块的接口，用于事务提交；向文件系统调用提供事务进出、事务批处理提交的功能。
+     3. block cache layer —— 为数据读写和上一层inode层读写inode结构提高数据块缓存机制。
+     4. inode cache layer —— 存储文件信息，被上一层路径层根据路径查找到inode结构，得到文件信息和数据块号。
+     5. path layer —— 路径层，为上一层的我们自己文件系统的系统调用作为参数使用。
+     6. FUSE system calls layer —— 我们自己定义的系统调用，实现上一层的libfuse接口。
+     7. libfuse layer —— libfuse库作为中间层，监听上一层的VFS的请求，返回我们自己的结果。
+     8. linux VFS 机制 —— linux使用的虚拟文件系统机制，为上一层的glibc标准库的文件系统调用提供对应文件系统的功能实现，比如对一个ext4 FS的文件操作，自然向下调用ext4 FS实现，如果是对我们的FUSE文件操作，那么就会进入下一层libfuse layer，让libfuse layer转发请求到我们用户态的实现。
+     9. glibc FS system calls layer —— 标准库的文件系统调用函数，不知要对哪一个文件系统调用。
+     10. 打开文件描述 layer —— 指向inode，linux内核维护的信息。
+     11. 文件描述符 layer —— 指向打开文件描述，linux内核维护的信息。
+    （注：为了简单，我们实现的是high-lever libfuse接口，使用路径；另外fd的层次是高于VFS的，也就是说打开不同文件系统而来的fd和相同FS的打开得到的fd没有什么不同，都是顺序递增，不可能重复的，由内核维护，fd和FUSE一点关系都没有）
 
   3. **并发支持：**  
      1. 通过pthread的mutex作为使用的锁机制，保证临界区的原子性访问，分别对于缓存区整体、每一个缓存区中的元素拥有一个锁，建立两层锁机制。例如第一层锁是对于inode cache整体有一个锁保证了一个 inode 在缓存只有一个副本(因为to do)，以及缓存 inode 的引用计数正确（to do）；第二层锁是对每个内存中的 inode 都有一个锁，保证了可以独占访问 inode 的相关字段，以及 inode 所对应的数据块（to do）。对于数据块整体 cache 结构和内存中的单个数据块结构同理，也是这样的二层锁机制保证。
