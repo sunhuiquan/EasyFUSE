@@ -1,6 +1,6 @@
 #define FUSE_USE_VERSION 27
 #include <fuse.h>
-#include <stdlib.h>
+#include <stdio.h>
 
 #include "fuse_fs_calls.h" // 所有FS系统调用的声明
 

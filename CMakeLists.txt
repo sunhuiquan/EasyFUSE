@@ -13,7 +13,10 @@ add_executable(
   src/inode_cache.c
   src/block_cache.c
   src/log.c
+  src/fuse_fs_stat.c
   src/fuse_fs_open.c
   src/util.c
   src/fs.c)
 target_include_directories(fuse_fs PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_compile_definitions(fuse_fs PRIVATE _FILE_OFFSET_BITS=64)
+target_link_libraries(fuse_fs PRIVATE fuse)

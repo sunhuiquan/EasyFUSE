@@ -4,6 +4,7 @@
 #define FUSE_FS_CALLS_H
 
 #include <sys/types.h>
+#include <sys/stat.h>
 
 /* wraper */
 int wraper(char *path, ushort type);

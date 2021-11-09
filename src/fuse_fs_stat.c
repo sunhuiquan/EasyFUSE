@@ -1,6 +1,6 @@
 #include "fuse_fs_calls.h"
 #include "fs.h"
-#include <sys/stat.h>
+#include <stdio.h>
 
 /* 获取文件属性，注意该FS没有实现权限检测，所以显示是0777权限 */
 int fuse_fs_stat(const char *path, struct stat *sbuf)
