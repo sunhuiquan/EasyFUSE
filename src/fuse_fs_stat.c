@@ -11,9 +11,9 @@ int fuse_fs_stat(const char *path, struct stat *sbuf)
 	memset(sbuf, 0, sizeof(struct stat));
 	printf("pathname: %s\n", path);
 
-	sbuf->st_ino = 1234;
+	// sbuf->st_ino = 1234;
 	sbuf->st_size = 5678;
-	sbuf->st_mode = REG_FILE | 0777;
+	sbuf->st_mode = REG_FILE | 0666;
 
 	return 0;
 }
