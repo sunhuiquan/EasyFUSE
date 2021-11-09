@@ -97,6 +97,8 @@
 
 1. 使用pthread库的时候，要注意下pthread库里面的函数返回值错误时不是-1，而是errno值，这个错误返回的风格和C标准库的风格不一样。
 
+---
+
 ## 参考文献
 
 [1] _XV6 book_ <https://pdos.csail.mit.edu/6.828/2020/xv6/book-riscv-rev1.pdf>  
@@ -106,6 +108,8 @@
 [4] _深入理解计算机系统 (CS:APP)_  
 [5] _LINUX/UNIX 系统编程手册 (TLPI)_  
 [6] _操作系统概念 (OSC)_
+
+---
 
 ## Timeline
 
