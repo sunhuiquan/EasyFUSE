@@ -74,11 +74,40 @@
 
 ## 如何使用
 
-1. 首先创建一个文件，用于充当模拟磁盘，内容可以清空（后面初始化会清零），路径任意（后面通过参数指定路径），但注意这不可以是一个空文件，这个文件的大小需要在这里就定下来。  
+1. 首先创建一个文件，用于充当模拟磁盘，内容可以清空（后面初始化会清零），路径任意（后面通过参数指定路径），但注意这不可以是一个空文件，这个文件的大小需要在这里就定下来。
+  
+     ```bash
+    dd if=/dev/zero of=diskimg bs=1024 count=10000
+    # 创建一个拥有10000个BLOCK_SIZE（指我们FS的块大小1024B）的文件，约10M
+    ```
+
+2. 创建build目录，进入使用camke和make构建项目
 
     ```bash
-    dd if=/dev/zero of=diskimg bs=1024 count=10000
-    // 创建一个拥有10000个BLOCK_SIZE（指我们FS的块大小1024B）的文件，约10M
+    mkdir build
+    cd build
+    cmake ..
+    make
+    ```
+
+3. 运行init_disk初始化第一步创建的文件，模拟格式化磁盘这个步骤（只需在安装的时候运行一次，之后除非格式化否则不再运行）
+
+    ```bash
+    ./init_disk ../diskimg # ../diskimg是创建的路径，其他亦可
+    ```
+
+4. 运行fuse_fs程序，-d代表可选的调试选项，无-d则该进程会成为守护进程后台运行，-d会在前台显示使用FUSE的信息，然后是要挂载的目录路径，我们这里手动新建一个。
+
+    ```bash
+    mkdir mountdir
+    fuse_fs mountdir # 无-d选项则成为守护进程后台运行
+    ```
+
+5. 查看挂载和进程信息
+
+    ```bash
+    ps -aux | grep fuse_fs
+    mount | grep mountdir
     ```
 
 ---
