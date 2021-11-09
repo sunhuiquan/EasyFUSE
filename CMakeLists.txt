@@ -7,8 +7,8 @@ add_executable(init_disk src/init_disk.c src/disk.c src/block_cache.c
 target_include_directories(init_disk PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(
-  test_create
-  test/test_create.c
+  fuse_fs
+  src/main.c
   src/disk.c
   src/inode_cache.c
   src/block_cache.c
@@ -16,4 +16,4 @@ add_executable(
   src/fuse_fs_open.c
   src/util.c
   src/fs.c)
-target_include_directories(test_create PRIVATE ${PROJECT_SOURCE_DIR}/include)
+target_include_directories(fuse_fs PRIVATE ${PROJECT_SOURCE_DIR}/include)
