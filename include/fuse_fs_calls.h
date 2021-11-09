@@ -6,6 +6,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+/* 开机系统启动后加载文件系统 */
+void *fuse_fs_init(void);
+
 /* wraper */
 int wraper(char *path, ushort type);
 

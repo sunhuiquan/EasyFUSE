@@ -132,16 +132,9 @@ static int init_disk(const char *path)
 	return 0;
 }
 
-int main(int argc, char *argv[])
+int main()
 {
-	if (argc != 2)
-	{
-		printf("%s usage: <path>\n", argv[0]);
-		printf("  -path: the disk device image file\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if (init_disk(argv[1]) == -1)
+	if (init_disk(DISK_FILE_PATH) == -1)
 		err_exit("init_disk");
 
 	printf("init disk successfully.\n");

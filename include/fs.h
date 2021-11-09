@@ -3,6 +3,8 @@
 
 #include <sys/types.h> // 为了用 uint（unsigned int），因为方便
 
+#define DISK_FILE_PATH "./diskimg"
+
 #define BLOCK_SIZE 1024 // 块大小 1024B
 
 /* log block的数目，代表着一个事务最多能一次写多少个块(要-1因为log header块)。

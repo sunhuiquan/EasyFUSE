@@ -5,7 +5,7 @@
 #include "fuse_fs_calls.h" // 所有FS系统调用的声明
 
 /* 对libfuse库接口的实现 */
-static struct fuse_operations u_operation = {.getattr = fuse_fs_stat};
+static struct fuse_operations u_operation = {.getattr = fuse_fs_stat, .init = fuse_fs_init};
 
 int main(int argc, char *argv[])
 {

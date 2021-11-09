@@ -10,22 +10,6 @@
 
 int main(int argc, char *argv[])
 {
-	if (argc != 2)
-	{
-		printf("%s usage: <path>\n", argv[0]);
-		printf("  -path: the disk device image file\n");
-		exit(EXIT_FAILURE);
-	}
-
-	if (load_disk(argv[1]) == -1) // 加载磁盘，读取superblock到内存的全局变量中
-		err_exit("load_disk(argv[1])");
-	if (inode_cache_init() == -1) // 初始化 inode cache
-		err_exit("inode_cache_init");
-	if (init_block_cache_block() == -1) // 初始化 block cache
-		err_exit("init_block_cache_block");
-	if (init_log() == -1) // 初始化log，并进行磁盘恢复操作
-		err_exit("init_log");
-
 	if (wraper("/a/", FILE_DIR) == -1) // 创建 /a/ 目录文件测试
 		err_exit("create(\"/a/\", FILE_DIR)");
 
