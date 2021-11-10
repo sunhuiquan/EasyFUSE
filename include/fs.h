@@ -7,6 +7,10 @@
 
 #define BLOCK_SIZE 1024 // 块大小 1024B
 
+#define FUSE_FILE S_IFREG // 原来就是通过对应掩码取与检测的，所以倒过来就是这个值
+#define FUSE_DIR S_IFDIR
+#define FUSE_LNK S_IFLNK;
+
 /* log block的数目，代表着一个事务最多能一次写多少个块(要-1因为log header块)。
  *
  * 大部分的写磁盘的系统调用要写入的磁盘块数很少，但是我们使用的这个写事务是批处理的，可以让多个进程的写系统调用
@@ -47,6 +51,9 @@ struct dirent
 
 // 返回路径文件所在的目录的 inode，通过iget，返回未加锁，且已增加了引用计数
 struct inode *find_dir_inode(char *path, char *name);
+
+// 返回路径对应文件的 inode，通过iget，返回未加锁，且已增加了引用计数
+struct inode *find_path_inode(char *path, char *name);
 
 /* 通过目录 inode 查找该目录下对应 name 的 inode 并返回，通过iget，返回未加锁，且已增加了引用计数。
  * (内存中调用iget就说明有新的对象指向了这个inode缓存，调用iget就会导致引用计数+1)

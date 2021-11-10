@@ -13,7 +13,7 @@
 #define INODE_NUM_PER_BLOCK (BLOCK_SIZE / sizeof(struct disk_inode))				  // 一个块里面的disk_inode结构数
 #define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno) // 得到inum对应的逻辑磁盘块号
 
-#define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint))) // 一个文件最多拥有的块数
+_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint))) // 一个文件最多拥有的块数
 #define FILE_SIZE_MAX (MAX_FILE_BLOCK_NUM * BLOCK_SIZE)						   // 一个文件的最大大小
 
 // static 函数，仅在此源文件范围内使用，不放在头文件
