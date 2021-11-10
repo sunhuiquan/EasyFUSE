@@ -76,7 +76,7 @@ static struct cache_block *cache_block_get(int blockno)
 	for (pc = bcache.head.prev; pc != &bcache.head; pc = pc->prev)
 		if (pc->refcnt == 0)
 		{
-			if (pthread_mutex_lock(&bcache.cache_lock) == -1)
+			if (pthread_mutex_unlock(&bcache.cache_lock) == -1)
 				return NULL;
 
 			if (pthread_mutex_lock(&pc->block_lock) == -1)

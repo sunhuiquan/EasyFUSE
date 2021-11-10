@@ -43,6 +43,7 @@ int init_log()
 		return -1;
 	if (recover_from_log_disk() == -1)
 		return -1;
+	return 0;
 }
 
 static int recover_from_log_disk()
@@ -108,6 +109,7 @@ static int write_to_data_disk(int is_recover)
 /* 从磁盘读取头日志块到内存 */
 static int disk_read_log_head()
 {
+	// 第一次安装读到的全是0，所以也是正确的
 	struct cache_block *bbuf = block_read(superblock.log_block_startno);
 	if (bbuf == NULL)
 		return -1;

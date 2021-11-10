@@ -39,6 +39,7 @@ static int init_disk(const char *path)
 	{
 		if (read(disk_fd, temp, BLOCK_SIZE) != BLOCK_SIZE)
 			return -1;
+		// 我们选择使用0来格式化磁盘，里面每个字节的二进制数据都是0
 		memset(temp, 0, BLOCK_SIZE);
 		if (lseek(disk_fd, i * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
 			return -1;

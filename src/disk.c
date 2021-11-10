@@ -63,7 +63,7 @@ int disk_read(struct cache_block *buf)
 {
 	if (lseek(disk_fd, buf->blockno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
 		return -1;
-	if (read(disk_fd, &buf, BLOCK_SIZE) != BLOCK_SIZE)
+	if (read(disk_fd, &buf->data, BLOCK_SIZE) != BLOCK_SIZE)
 		return -1;
 	return 0;
 }
