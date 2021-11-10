@@ -1,13 +1,13 @@
-/* 实现 libfuse open API */
+/* 声明该FUSE的系统调用 */
 
-#ifndef FUSE_FS_CALLS_H
-#define FUSE_FS_CALLS_H
+#ifndef USERSPACE_FS_CALLS_H
+#define USERSPACE_FS_CALLS_H
 
 #include <sys/types.h>
 #include <sys/stat.h>
 
 /* 开机系统启动后加载文件系统 */
-void *fuse_fs_init(void);
+void *userspace_fs_init();
 
 /* wraper */
 int wraper(char *path, ushort type);
@@ -16,6 +16,6 @@ int wraper(char *path, ushort type);
 struct inode *create(char *path, ushort type);
 
 /* 获取文件属性，注意该FS没有实现权限检测，所以显示是0777权限 */
-int fuse_fs_stat(const char *path, struct stat *sbuf);
+int userspace_fs_stat(const char *path, struct stat *sbuf);
 
 #endif

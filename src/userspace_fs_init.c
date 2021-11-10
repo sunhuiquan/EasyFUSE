@@ -1,10 +1,15 @@
-#include "fuse_fs_calls.h"
+#include "userspace_fs_calls.h"
 #include "fs.h"
+#include "disk.h"
+#include "inode_cache.h"
+#include "block_cache.h"
+#include "log.h"
+#include "util.h"
 #include <stdlib.h>
 #include <stdio.h>
 
 /* 开机系统启动后加载文件系统 */
-void *fuse_fs_init(void)
+void *userspace_fs_init()
 {
 	printf("文件系统开始加载\n");
 	if (load_disk(DISK_FILE_PATH) == -1) // 加载磁盘，读取superblock到内存的全局变量中

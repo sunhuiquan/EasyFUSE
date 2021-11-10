@@ -13,9 +13,9 @@ add_executable(
   src/inode_cache.c
   src/block_cache.c
   src/log.c
-  src/fuse_fs_init.c
-  src/fuse_fs_stat.c
-  src/fuse_fs_open.c
+  src/userspace_fs_init.c
+  src/userspace_fs_stat.c
+  src/userspace_fs_open.c
   src/util.c
   src/fs.c)
 target_include_directories(fuse_fs PRIVATE ${PROJECT_SOURCE_DIR}/include)

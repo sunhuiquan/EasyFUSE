@@ -1,3 +1,5 @@
+/* 日志层实现 */
+
 #ifndef LOG_H
 #define LOG_H
 

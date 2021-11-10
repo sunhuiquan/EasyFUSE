@@ -1,6 +1,6 @@
-/* 实现 libfuse open API */
+/* 实现FUSE系统调用 */
 
-#include "fuse_fs_calls.h"
+#include "userspace_fs_calls.h"
 #include "inode_cache.h"
 #include "block_cache.h"
 #include "log.h"

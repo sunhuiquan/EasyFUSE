@@ -2,10 +2,10 @@
 #include <fuse.h>
 #include <stdio.h>
 
-#include "fuse_fs_calls.h" // 所有FS系统调用的声明
+#include "userspace_fs_calls.h" // 所有FUSE系统调用的声明
 
 /* 对libfuse库接口的实现 */
-static struct fuse_operations u_operation = {.getattr = fuse_fs_stat, .init = fuse_fs_init};
+static struct fuse_operations u_operation = {.getattr = userspace_fs_stat, .init = userspace_fs_init};
 
 int main(int argc, char *argv[])
 {
