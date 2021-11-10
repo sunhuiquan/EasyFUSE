@@ -100,7 +100,7 @@
 
     ```bash
     mkdir mountdir
-    fuse_fs mountdir # 无-d选项则成为守护进程后台运行
+    ./fuse_fs mountdir # 无-d选项则成为守护进程后台运行
     ```
 
 5. 查看挂载和进程信息
