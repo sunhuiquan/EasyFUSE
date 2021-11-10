@@ -13,6 +13,7 @@ add_executable(
   src/inode_cache.c
   src/block_cache.c
   src/log.c
+  src/fuse_fs_init.c
   src/fuse_fs_stat.c
   src/fuse_fs_open.c
   src/util.c
