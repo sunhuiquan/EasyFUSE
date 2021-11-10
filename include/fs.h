@@ -7,9 +7,9 @@
 
 #define BLOCK_SIZE 1024 // 块大小 1024B
 
-#define FUSE_FILE S_IFREG // 原来就是通过对应掩码取与检测的，所以倒过来就是这个值
-#define FUSE_DIR S_IFDIR
-#define FUSE_LNK S_IFLNK
+#define FILE_DIR 1
+#define FILE_REG 2
+#define FILE_LNK 4
 
 /* log block的数目，代表着一个事务最多能一次写多少个块(要-1因为log header块)。
  *
@@ -50,10 +50,10 @@ struct dirent
 };
 
 // 返回路径文件所在的目录的 inode，通过iget，返回未加锁，且已增加了引用计数
-struct inode *find_dir_inode(char *path, char *name);
+struct inode *find_dir_inode(const char *path, char *name);
 
 // 返回路径对应文件的 inode，通过iget，返回未加锁，且已增加了引用计数
-struct inode *find_path_inode(char *path, char *name);
+struct inode *find_path_inode(const char *path, char *name);
 
 /* 通过目录 inode 查找该目录下对应 name 的 inode 并返回，通过iget，返回未加锁，且已增加了引用计数。
  * (内存中调用iget就说明有新的对象指向了这个inode缓存，调用iget就会导致引用计数+1)
@@ -61,7 +61,7 @@ struct inode *find_path_inode(char *path, char *name);
 struct inode *dir_find(struct inode *pdi, char *name);
 
 /* 获取当前层(比如中间的路径名，直到最后的文件名)的路径名 */
-char *current_dir_name(char *path, char *name);
+const char *current_dir_name(const char *path, char *name);
 
 // 将name和inum组合成一条dirent结构，写入pdi这个目标inode结构，注意pdi是持有锁的
 int add_dirent_entry(struct inode *pdi, char *name, uint inum);

@@ -20,11 +20,11 @@ int userspace_fs_stat(const char *path, struct stat *sbuf)
 	sbuf->st_dev = pinode->dev;
 	sbuf->st_nlink = pinode->dinode.nlink;
 
-	if (pinode->dinode.type == FUSE_DIR)
+	if (pinode->dinode.type == FILE_DIR)
 		sbuf->st_mode = S_IFDIR | 0777;
-	else if (pinode->dinode.type == FUSE_FILE)
+	else if (pinode->dinode.type == FILE_REG)
 		sbuf->st_mode = S_IFREG | 0777;
-	else if (pinode->dinode.type == FUSE_LNK)
+	else if (pinode->dinode.type == FILE_LNK)
 		sbuf->st_mode = S_IFLNK | 0777;
 	else
 		return -1;

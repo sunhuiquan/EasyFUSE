@@ -7,8 +7,11 @@
 #include <sys/types.h>
 #include <pthread.h>
 
-// 返回路径文件所在的目录(不是文件本身，是它所在的目录)的 inode，通过iget，返回未加锁，且已增加了引用计数
-struct inode *find_dir_inode(char *path, char *name)
+/* 返回路径文件所在的目录(不是文件本身，是它所在的目录)的 inode，通过iget，返回未加锁，且已增加了引用计数
+ * 
+ * 注意const char*的path，因为我们只改变副本形参指针的指向，与外面的实参无关。
+ */
+struct inode *find_dir_inode(const char *path, char *name)
 {
 	struct inode *pinode, *next;
 
@@ -53,7 +56,7 @@ struct inode *find_dir_inode(char *path, char *name)
 }
 
 // 返回路径对应文件的 inode，通过iget，返回未加锁，且已增加了引用计数
-struct inode *find_path_inode(char *path, char *name)
+struct inode *find_path_inode(const char *path, char *name)
 {
 	// struct inode *pinode, *next;
 
@@ -104,9 +107,9 @@ struct inode *find_path_inode(char *path, char *name)
  * 			"/a/b" => path:"b" name:"b"
  * (多余的 '/' 不影响结果，最后如果是 '/' 会忽略，不会当成路径)
  */
-char *current_dir_name(char *path, char *name)
+const char *current_dir_name(const char *path, char *name)
 {
-	char *s;
+	const char *s;
 	int len;
 
 	while (*path == '/')
