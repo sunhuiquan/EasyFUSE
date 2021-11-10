@@ -10,7 +10,6 @@
 // to do 没有加时间属性和设备属性
 int userspace_fs_stat(const char *path, struct stat *sbuf)
 {
-	return -1;
 	char basename[MAX_NAME];
 	struct inode *pinode;
 	if ((pinode = find_path_inode(path, basename)) == NULL)
