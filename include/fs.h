@@ -9,7 +9,7 @@
 
 #define FUSE_FILE S_IFREG // 原来就是通过对应掩码取与检测的，所以倒过来就是这个值
 #define FUSE_DIR S_IFDIR
-#define FUSE_LNK S_IFLNK;
+#define FUSE_LNK S_IFLNK
 
 /* log block的数目，代表着一个事务最多能一次写多少个块(要-1因为log header块)。
  *

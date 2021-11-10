@@ -5,12 +5,6 @@
 #include <sys/stat.h>
 #include <pthread.h>
 
-#define FILE_FREE 0
-#define FILE_DIR 1
-#define FILE_REG 2
-#define FILE_SYM 3
-#define FILE_DEV 4
-
 #define ROOT_INODE 0 // 根路径所在的inode号为0，即第一个inode
 
 /* inode实体的文件类型(这里的文件概念是泛指，目录也是文件的一种) */
