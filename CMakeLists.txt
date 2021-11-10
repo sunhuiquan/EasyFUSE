@@ -1,5 +1,8 @@
 cmake_minimum_required(VERSION 3.5)
 
+set(CMAKE_BUILD_TYPE Debug) # 为了能够调试，相当于-g选项
+# set(CMAKE_BUILD_TYPE Release)
+
 project(fuse_fs)
 
 add_executable(init_disk src/init_disk.c src/disk.c src/block_cache.c
