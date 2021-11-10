@@ -15,6 +15,9 @@ int userspace_fs_stat(const char *path, struct stat *sbuf)
 	if ((pinode = find_path_inode(path, basename)) == NULL)
 		return -1;
 
+	// 给pinode加锁，虽然这里是读，但是如果中间被修改，那么我们读的这个pinode信息就是不一致的，可能导致严重错误
+	if (inode_lock(pinode) == -1)
+		return -1;
 	sbuf->st_ino = pinode->inum;
 	sbuf->st_size = pinode->dinode.size;
 	sbuf->st_dev = pinode->dev;
@@ -27,7 +30,10 @@ int userspace_fs_stat(const char *path, struct stat *sbuf)
 	else if (pinode->dinode.type == FILE_LNK)
 		sbuf->st_mode = S_IFLNK | 0777;
 	else
+	{
+		inode_unlock_then_reduce_ref(pinode);
 		return -1;
+	}
 
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
 		return -1;

@@ -17,8 +17,12 @@ struct inode *find_dir_inode(const char *path, char *name)
 	struct inode *pinode, *next;
 
 	pinode = iget(ROOT_INODE); // iget返回的是未加锁的inode指针
-	while ((path = current_dir_name(path, name)) != NULL)
+	while (1)
 	{
+		path = current_dir_name(path, name);
+		if (*name == '\0')
+			return NULL;
+
 		if (inode_lock(pinode) == -1)
 			return NULL;
 
@@ -58,13 +62,16 @@ struct inode *find_dir_inode(const char *path, char *name)
 }
 
 // 返回路径对应文件的 inode，通过iget，返回未加锁，且已增加了引用计数
+// to do ?? 相对路径的支持
 struct inode *find_path_inode(const char *path, char *name)
 {
 	struct inode *pinode, *next;
 
 	pinode = iget(ROOT_INODE); // iget返回的是未加锁的inode指针
-	while ((path = current_dir_name(path, name)) != NULL)
+	while (1)
 	{
+		path = current_dir_name(path, name);
+
 		if (inode_lock(pinode) == -1)
 			return NULL;
 
@@ -105,8 +112,7 @@ const char *current_dir_name(const char *path, char *name)
 
 	while (*path == '/')
 		path++;
-	if (*path == 0) // 空字符串错误
-		return NULL;
+
 	s = path;
 	while (*path != '/' && *path != '\0')
 		path++;
