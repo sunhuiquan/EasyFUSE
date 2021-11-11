@@ -3,6 +3,7 @@
 #ifndef USERSPACE_FS_CALLS_H
 #define USERSPACE_FS_CALLS_H
 
+#include <fuse.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -17,5 +18,9 @@ struct inode *create(char *path, ushort type);
 
 /* 获取文件属性，注意该FS没有实现权限检测，所以显示是0777权限 */
 int userspace_fs_stat(const char *path, struct stat *sbuf);
+
+/* 读取path目录的目录项 */
+static int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+								off_t offset, struct fuse_file_info *fi);
 
 #endif

@@ -13,7 +13,12 @@
  */
 
 /* 对libfuse库接口的实现，我们在我们实现的FUSE系统调用中，对-1情况直接panic终止程序，报告错误 */
-static struct fuse_operations u_operation = {.getattr = userspace_fs_stat, .init = userspace_fs_init};
+static struct fuse_operations u_operation = {
+	.init = userspace_fs_init,
+	.getattr = userspace_fs_stat,
+	.readdir = userspace_fs_readdir,
+	// .open = userspace_fs_open
+};
 
 int main(int argc, char *argv[])
 {

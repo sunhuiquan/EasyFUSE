@@ -18,6 +18,7 @@ add_executable(
   src/log.c
   src/userspace_fs_init.c
   src/userspace_fs_stat.c
+  src/userspace_fs_readdir.c
   src/userspace_fs_open.c
   src/util.c
   src/fs.c)

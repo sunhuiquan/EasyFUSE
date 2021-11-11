@@ -189,5 +189,6 @@
 - [x] CMake编译项目
 - [x] 实现logging layer，日志机制
 - [x] libfuse实现简易版本的getattr接口
-- [ ] 实现libfuse open API
+- [ ] 实现libfuse readdir 接口
+- [ ] 实现libfuse open 接口
 - [ ] ...
