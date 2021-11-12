@@ -12,4 +12,6 @@ void err_exit(const char *msg);
 /* 输出加载的 superblock 的信息 */
 void pr_superblock_information(const struct super_block *superblock);
 
+void pr(const char *msg);
+
 #endif

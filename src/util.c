@@ -30,3 +30,8 @@ void pr_superblock_information(const struct super_block *superblock)
 	printf("\t data_block_startno: %u\n", superblock->data_block_startno);
 	printf("\t data_block_num: %u\n", superblock->data_block_num);
 }
+
+void pr(const char *msg)
+{
+	printf("%s\n", msg);
+}
