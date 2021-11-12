@@ -35,7 +35,7 @@ int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			return -1;
 		}
 
-		if (dir.inum != 0 || !strncmp(dir.name, ".", MAX_NAME) || !strncmp(dir.name, "..", MAX_NAME))
+		if (*dir.name != '\0')
 			if (filler(buf, dir.name, NULL, 0) != 0)
 			{
 				inode_unlock_then_reduce_ref(pinode);
