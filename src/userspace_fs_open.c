@@ -68,8 +68,8 @@ struct inode *create(char *path, ushort type)
 
 	if (type == FILE_DIR) // 添加 . 和 .. 目录项
 	{
+		++pinode->dinode.nlink;		// . 指向自己
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
-		// No ip->nlink++ for ".": avoid cyclic ref count.??
 		if (inode_update(dir_pinode) == -1)
 			return NULL;
 

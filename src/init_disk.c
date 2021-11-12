@@ -110,7 +110,7 @@ static int init_disk(const char *path)
 	struct disk_inode dinode;
 	dinode.type = FILE_DIR;
 	dinode.size = BLOCK_SIZE;
-	dinode.nlink = 1;
+	dinode.nlink = 2;
 	dinode.addrs[0] = superblock.data_block_startno;
 	if (lseek(disk_fd, superblock.inode_block_startno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)
 		return -1;

@@ -20,7 +20,7 @@ struct inode *create(char *path, ushort type);
 int userspace_fs_stat(const char *path, struct stat *sbuf);
 
 /* 读取path目录的目录项 */
-static int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
+int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 								off_t offset, struct fuse_file_info *fi);
 
 #endif
