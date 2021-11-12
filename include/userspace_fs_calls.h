@@ -11,7 +11,7 @@
 void *userspace_fs_init();
 
 /* wraper */
-int wraper(char *path, ushort type);
+int wraper(const char *path, short type);
 
 /* 获取文件属性 */
 int userspace_fs_stat(const char *path, struct stat *sbuf);

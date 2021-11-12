@@ -7,7 +7,7 @@
 #include "fs.h"
 
 /* wraper */
-int wraper(char *path, ushort type)
+int wraper(const char *path, short type)
 {
 	if (in_transaction() == -1)
 		return -1;
