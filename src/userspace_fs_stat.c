@@ -5,10 +5,14 @@
 #include "util.h"
 #include <string.h>
 
-/* 获取文件属性，注意该FS没有实现权限检测，所以显示是0777权限 */
+/* 获取文件属性 */
 // to do 没有加时间属性和设备属性
+// to do 增加权限标志，具体的权限检测是linux做的，我们只是设置标志位
 int userspace_fs_stat(const char *path, struct stat *sbuf)
 {
+	if (strlen(path) >= MAX_NAME) // 等于会没有'\0'导致溢出
+		return -1;
+
 	char basename[MAX_NAME];
 	struct inode *pinode;
 	if ((pinode = find_path_inode(path, basename)) == NULL)

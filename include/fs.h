@@ -66,4 +66,7 @@ const char *current_dir_name(const char *path, char *name);
 // 将name和inum组合成一条dirent结构，写入pdi这个目标inode结构，注意pdi是持有锁的
 int add_dirent_entry(struct inode *pdi, char *name, uint inum);
 
+/* 创建一个type类型、path路径的文件，返回的inode指针是持有锁的 */
+struct inode *userspace_fs_create(char *path, ushort type);
+
 #endif

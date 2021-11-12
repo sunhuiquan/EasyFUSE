@@ -12,7 +12,7 @@ extern struct super_block superblock;
 
 #define BIT_NUM_BLOCK (BLOCK_SIZE * 8) // 一个bitmap块标识的块数
 
-/* 运行fuse fs文件系统，加载磁盘，读取必要信息 */
+/* 运行fuse，加载磁盘，读取必要信息 */
 int load_disk(const char *path);
 
 /* 把磁盘内容读到我们之前取到的空闲cache块中（cache_block_get()调用的结果） */

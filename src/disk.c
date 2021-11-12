@@ -32,7 +32,7 @@ int disk_fd;
  */
 struct super_block superblock;
 
-/* 运行fuse fs文件系统，加载磁盘，读取必要信息 */
+/* 运行fuse，加载磁盘，读取必要信息 */
 int load_disk(const char *path)
 {
 	if ((disk_fd = open(path, O_RDWR)) == -1)
@@ -43,7 +43,7 @@ int load_disk(const char *path)
 	if (read(disk_fd, &superblock, sizeof(struct super_block)) != sizeof(struct super_block))
 		return -1;
 
-	// 验证错误，不是我们的FUSE_FS或者没有经过初始化磁盘init_disk程序
+	// 验证错误，不是我们的FUSE或者没有经过初始化磁盘init_disk程序
 	if (superblock.magic != MAGIC_NUMBER)
 	{
 		errno = EINVAL;
