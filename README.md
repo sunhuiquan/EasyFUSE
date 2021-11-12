@@ -188,7 +188,7 @@
 - [x] 实现数据块、数据块缓冲的加锁机制
 - [x] CMake编译项目
 - [x] 实现logging layer，日志机制
-- [x] libfuse实现简易版本的getattr接口
-- [ ] 实现libfuse readdir 接口
+- [x] libfuse实现简易版本的getattr接口(仍有bug)
+- [x] 实现libfuse readdir 接口(仍有bug)
 - [ ] 实现libfuse open 接口
 - [ ] ...

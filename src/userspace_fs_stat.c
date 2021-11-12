@@ -3,14 +3,12 @@
 #include "disk.h"
 #include "inode_cache.h"
 #include "util.h"
-#include <stdio.h>
 #include <string.h>
 
 /* 获取文件属性，注意该FS没有实现权限检测，所以显示是0777权限 */
 // to do 没有加时间属性和设备属性
 int userspace_fs_stat(const char *path, struct stat *sbuf)
 {
-	printf("stat %s\n", path);
 	char basename[MAX_NAME];
 	struct inode *pinode;
 	if ((pinode = find_path_inode(path, basename)) == NULL)
