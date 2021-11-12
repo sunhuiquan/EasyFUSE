@@ -21,6 +21,15 @@ static struct fuse_operations u_operation = {
 	// .open = userspace_fs_open
 };
 
+/* 注意fuse_main注册的u_operation里面的函数返回值对libfuse的作用的，例如getattr返回-ENOENT代表无此文件，
+ * 通知了libfuse做相应的操作。
+ *
+ * 但是我们的实现里面是glibc风格，我们返回的是-1代表错误，-errno的值并没有返回，返回-1在libfuse看起来是
+ * operation no permitted的错误，但实际上这是我们用-1表示通用的错误，具体错误原因并不是这个。
+ *
+ * 所以对于某些错误，libfuse需要使用的，我们要给与对应的-errno返回值，虽然我们的实现有点问题，都用-errno返回
+ * 也许更好，但是由于不想改整体代码的原因，我们仅在libfuse必需要用的情况的确返回对应的-errno值。
+ */
 int main(int argc, char *argv[])
 {
 	int ret = fuse_main(argc, argv, &u_operation, NULL);

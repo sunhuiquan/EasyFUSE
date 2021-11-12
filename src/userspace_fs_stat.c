@@ -4,8 +4,9 @@
 #include "inode_cache.h"
 #include "util.h"
 #include <string.h>
+#include <errno.h>
 
-/* 获取文件属性 */
+/* 获取文件属性，返回-ENOENT代表无此文件，注意要直接返回给libfuse接口用于通知 */
 // to do 没有加时间属性和设备属性
 // to do 增加权限标志，具体的权限检测是linux做的，我们只是设置标志位
 int userspace_fs_stat(const char *path, struct stat *sbuf)
@@ -16,7 +17,7 @@ int userspace_fs_stat(const char *path, struct stat *sbuf)
 	char basename[MAX_NAME];
 	struct inode *pinode;
 	if ((pinode = find_path_inode(path, basename)) == NULL)
-		return -1;
+		return -ENOENT; // 无此文件，用于通知ligfuse LOOK UP找不到文件
 
 	// 给pinode加锁，虽然这里是读，但是如果中间被修改，那么我们读的这个pinode信息就是不一致的，可能导致严重错误
 	// 同时这也保证了如果valid 0那么就进行inode_load操作
