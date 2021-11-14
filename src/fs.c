@@ -167,12 +167,17 @@ int add_dirent_entry(struct inode *pdi, char *name, uint inum)
 	}
 	// pi == NULL 代表该目录里面没有这个名字的目录项
 
+	/* 注意size对于目录是分配数据块的大小，是BLOCK_SIZE的倍数，而对于文件才是真实的数据大小。
+
+	 * 这里有两种情况，一种是索引上已经分配了数据块，那么readinode会成功读，然后比较inum和name如果为空
+	 * 代表该目录项空可以用；另一种索引上还没有分配数据块，那么之后writeinode会一次分一个数据块。
+	 */
 	int off = 0;
 	for (; off < pdi->dinode.size; off += sizeof(struct dirent))
 	{
 		if (readinode(pdi, &dir, off, sizeof(struct dirent)) != sizeof(struct dirent))
 			return -1;
-		if (dir.inum == 0)
+		if (dir.inum == 0 && *dir.name != '\0') // 判断name是为了防止根目录，所以unlink一定要清空inum和name
 			break;
 	}
 
@@ -223,8 +228,6 @@ struct inode *userspace_fs_create(const char *path, short type)
 	if (inode_lock(pinode) == -1) // 加锁
 		return NULL;
 	pinode->dinode.nlink = 1;
-	if (inode_update(pinode) == -1)
-		return NULL;
 
 	if (type == FILE_DIR) // 添加 . 和 .. 目录项
 	{
@@ -236,6 +239,9 @@ struct inode *userspace_fs_create(const char *path, short type)
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
 			return NULL;
 	}
+
+	if (inode_update(pinode) == -1)
+		return NULL;
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
 		return NULL;
 
@@ -243,4 +249,3 @@ struct inode *userspace_fs_create(const char *path, short type)
 		return NULL;
 	return pinode;
 }
-

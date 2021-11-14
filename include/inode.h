@@ -21,7 +21,7 @@ struct disk_inode
 	short major; // 如果是设备文件那么有major主设备号
 	short minor; // 如果是设备文件那么有minor次设备号
 	short nlink; // 硬链接数(打开文件描述指向inode)
-	uint size;	 // 文件的实际大小
+	uint size;	 // size对于目录是分配数据块的大小，是BLOCK_SIZE的倍数，而对于文件才是真实的数据大小
 	uint addrs[NDIRECT + NINDIRECT];
 	// 指向的数据块(采用三级索引),addrs的元素数是disk_inode_block大小减去其他字段剩下的大小计算得来 (64 - (2 * 4) - 4) / 4 => 13
 };

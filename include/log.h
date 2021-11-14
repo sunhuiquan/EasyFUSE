@@ -3,6 +3,8 @@
 #ifndef LOG_H
 #define LOG_H
 
+#include "block_cache.h"
+
 /* 初始化日志层，这是内核加载文件系统，文件系统初始化的一部分 */
 int init_log();
 

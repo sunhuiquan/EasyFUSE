@@ -97,17 +97,15 @@ static int init_disk(const char *path)
 	pr_superblock_information(&superblock);
 
 	// ======================================================================================
-	// 3.设置bitmap块，我们的bitmap_set_or_clear实现是没有缓存中间层，直接读写磁盘的
-
-	/* 初始化bitmap块,初始化时除了数据块全部设置成1，因为只有数据块需要使用这个 */
-	// to do 把所有非数据块设为1
-	for (int i = 0; i < superblock.bitmap_block_startno; ++i)
-		if (bitmap_set_or_clear(i, 1) == -1)
+	// 3.设置bitmap中对应非数据块的位图，包含bitmap本身
+	for (int i = 0; i < superblock.data_block_startno; ++i)
+		if (bitmap_set_or_clear(i, 1) == -1) // 设置对应数据块位图为1
 			return -1;
 
 	// ======================================================================================
 	// 4.写入根目录到磁盘，别忘了这里也要设置bitmap，用我们下面写的函数实现
 	struct disk_inode dinode;
+	memset(&dinode, 0, sizeof(struct disk_inode));
 	dinode.type = FILE_DIR;
 	dinode.size = BLOCK_SIZE;
 	dinode.nlink = 2;
@@ -120,6 +118,7 @@ static int init_disk(const char *path)
 		return -1;
 
 	struct dirent dir;
+	memset(&dir, 0, sizeof(struct dirent));
 	dir.inum = 0;
 	strncpy(dir.name, ".", MAX_NAME);
 	if (lseek(disk_fd, superblock.data_block_startno * BLOCK_SIZE, SEEK_SET) == (off_t)-1)

@@ -14,7 +14,7 @@
 #define INODE_NUM(inum, sb) (((inum) / INODE_NUM_PER_BLOCK) + sb.inode_block_startno) // 得到inum对应的逻辑磁盘块号
 
 #define MAX_FILE_BLOCK_NUM (NDIRECT + NINDIRECT * (BLOCK_SIZE / sizeof(uint))) // 一个文件最多拥有的块数
-#define FILE_SIZE_MAX (MAX_FILE_BLOCK_NUM * BLOCK_SIZE)						// 一个文件的最大大小
+#define FILE_SIZE_MAX (MAX_FILE_BLOCK_NUM * BLOCK_SIZE)						   // 一个文件的最大大小
 
 // static 函数，仅在此源文件范围内使用，不放在头文件
 static int get_data_blockno_by_inode(struct inode *pi, uint off);
@@ -184,7 +184,7 @@ int inode_update(struct inode *pi)
 {
 	// 一定要持有pi的锁
 	struct cache_block *bbuf;
-	if ((bbuf = block_read(pi->inum + superblock.inode_block_startno)) == NULL)
+	if ((bbuf = block_read((pi->inum / INODE_NUM_PER_BLOCK) + superblock.inode_block_startno)) == NULL)
 		return -1;
 	memmove(&bbuf->data[(pi->inum % INODE_NUM_PER_BLOCK) * sizeof(struct disk_inode)],
 			&pi->dinode, sizeof(struct disk_inode)); // 放入bcache缓存中，后面会实际写入磁盘
@@ -235,7 +235,7 @@ struct inode *inode_allocate(ushort type)
 				}
 				if (block_unlock_then_reduce_ref(bbuf) == -1)
 					return NULL;
-				return iget((i - superblock.inode_block_startno) * INODE_NUM_PER_BLOCK + j);
+				return iget(i * INODE_NUM_PER_BLOCK + j);
 			}
 		}
 

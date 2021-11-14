@@ -3,7 +3,6 @@
 #include "disk.h"
 #include "fs.h"
 #include "log.h"
-#include "block_cache.h"
 
 #include <string.h>
 #include <pthread.h>
@@ -287,6 +286,7 @@ int in_transaction()
 			break;
 		}
 	}
+	return 0;
 }
 
 /* 离开事务，如果离开时无系统调用处于事务中，则提交事务 */
