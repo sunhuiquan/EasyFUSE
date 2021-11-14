@@ -179,17 +179,31 @@
 
 ## Timeline
 
-- [x] 安装 libfuse 库，熟悉 libfuse 接口的使用
-- [x] 通过文件模拟磁盘，设计磁盘块数据结构，磁盘层(相当于磁盘驱动代码)
-- [x] 初步实现块位图机制，通过块位图查找空闲的数据块(不包含Inode结构)
-- [x] 初步实现数据块缓冲机制
-- [x] 初步实现Inode块(指一个Inode结构算一个Inode块)缓冲机制
-- [x] 实现Inode块、Inode块缓冲的加锁机制
-- [x] 实现数据块、数据块缓冲的加锁机制
-- [x] CMake编译项目
-- [x] 实现logging layer，日志机制
-- [x] libfuse实现简易版本的getattr接口(仍有bug)
-- [x] 实现libfuse readdir 接口(仍有bug)
-- [ ] 实现libfuse mkdir 接口
-- [ ] 实现libfuse open 接口
-- [ ] ...
+1. 实现FUSE底层机制：
+    - [x] 安装 libfuse 库，熟悉 libfuse 接口的使用
+    - [x] 通过文件模拟磁盘，设计磁盘块数据结构，磁盘层(相当于磁盘驱动代码)
+    - [x] 初步实现块位图机制，通过块位图查找空闲的数据块(不包含Inode结构)
+    - [x] 初步实现数据块缓冲机制
+    - [x] 初步实现Inode块(指一个Inode结构算一个Inode块)缓冲机制
+    - [x] 实现Inode块、Inode块缓冲的加锁机制
+    - [x] 实现数据块、数据块缓冲的加锁机制
+    - [x] CMake编译项目
+    - [x] 实现logging layer，日志机制
+
+2. 实现文件系统调用Demo：
+    - [x] libfuse实现简易版本的getattr接口
+    - [x] 实现libfuse readdir 接口
+    - [x] 实现libfuse mkdir 接口
+    - [ ] 实现libfuse open 接口
+    - [ ] 实现libfuse rmdir
+    - [ ] 实现libfuse mknod
+    - [ ] 实现libfuse write
+    - [ ] 实现libfuse read
+    - [ ] 实现libfuse unlink
+    - [ ] 实现libfuse truncate
+    - [ ] 实现libfuse flush
+
+3. 编写测试用例进行单元测试：
+4. 添加系统调用Demo的功能：
+5. 集成测试和性能分析：
+6. 补充文档、PPT和毕设论文：
