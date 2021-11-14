@@ -123,12 +123,12 @@ int balloc()
 	{
 		if ((bbuf = block_read(superblock.bitmap_block_startno + i)) == NULL)
 			return -1;
-		for (int j = 0; j < BLOCK_SIZE; ++j)
+		for (int j = 0; j < BLOCK_SIZE; j += 8)
 		{
-			// 注意一定是无符号数右移，因为有符号数的>>右移会保持符号位不变
+			// 注意一定是无符号数右移，因为有符号数的>>右移会保持符号位不变，我们需要的是算术右移而不是逻辑右移
 			unsigned char bit = bbuf->data[j];
 			for (k = 0; k < 8; bit >>= 1, ++k)
-				if (bit & 1 == 0)
+				if ((bit & 1) == 0) // == 优先级比 & 高，所以要加括号
 				{
 					bbuf->data[j] &= (1 << k); // 设置对应位图位为1
 					if (write_log_head(bbuf) == -1)
