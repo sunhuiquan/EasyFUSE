@@ -12,6 +12,7 @@
 #include <stdio.h>
 
 extern int disk_fd;
+extern struct super_block superblock;
 
 #define MAGIC_NUMBER 0x123456789a
 
@@ -21,7 +22,6 @@ static int init_disk(const char *path)
 	struct stat sbuf;
 	uint real_size;
 	char temp[BLOCK_SIZE];
-	struct super_block superblock;
 
 	if ((disk_fd = open(path, O_RDWR)) == -1)
 		return -1;
