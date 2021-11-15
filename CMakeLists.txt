@@ -11,18 +11,23 @@ target_include_directories(init_disk PRIVATE ${PROJECT_SOURCE_DIR}/include)
 
 add_executable(
   fuse_run
+  # 底层机制代码
   src/main.c
   src/disk.c
   src/inode_cache.c
   src/block_cache.c
   src/log.c
+  # FUSE系统调用代码
+  src/fs.c
   src/userspace_fs_init.c
   src/userspace_fs_stat.c
   src/userspace_fs_readdir.c
   src/userspace_fs_mkdir.c
+  src/userspace_fs_unlink.c,
+  src/userspace_fs_rmdir.c,
   src/userspace_fs_open.c
-  src/util.c
-  src/fs.c)
+  # 辅助代码
+  src/util.c)
 target_include_directories(fuse_run PRIVATE ${PROJECT_SOURCE_DIR}/include)
 target_compile_definitions(fuse_run PRIVATE _FILE_OFFSET_BITS=64)
 target_link_libraries(fuse_run PRIVATE fuse)
