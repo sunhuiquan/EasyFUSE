@@ -29,4 +29,10 @@ int userspace_fs_unlink(const char *path);
 /* rmdir命令删除目录 */
 int userspace_fs_rmdir(const char *path);
 
+/* 实现 libfuse open 系统调用 */
+int userspace_fs_open(const char *path, struct fuse_file_info *fi);
+
+/* 实现 libfuse create 系统调用，可用于创建普通文件 */
+int userspace_fs_create(const char *path, mode_t mode, struct fuse_file_info *fi);
+
 #endif

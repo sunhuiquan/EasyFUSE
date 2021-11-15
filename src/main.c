@@ -20,8 +20,8 @@ static struct fuse_operations u_operation = {
 	.mkdir = userspace_fs_mkdir,
 	.unlink = userspace_fs_unlink,
 	.rmdir = userspace_fs_rmdir,
-	// .open = userspace_fs_open
-};
+	.create = userspace_fs_create,
+	.open = userspace_fs_open};
 
 /* 注意fuse_main注册的u_operation里面的函数返回值对libfuse的作用的，例如getattr返回-ENOENT代表无此文件，
  * 通知了libfuse做相应的操作。

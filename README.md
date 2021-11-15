@@ -190,12 +190,12 @@
     - [x] CMake编译项目
     - [x] 实现logging layer，日志机制
 
-2. 实现文件系统调用Demo：
+2. 实现主要的文件系统调用：
     - [x] libfuse实现简易版本的getattr接口
     - [x] 实现libfuse readdir 接口
     - [x] 实现libfuse mkdir 接口
     - [x] 实现libfuse rmdir 接口
-    - [ ] 实现libfuse mknod 接口
+    - [ ] 实现libfuse create 接口
     - [ ] 实现libfuse unlink 接口
     - [ ] 实现libfuse link 接口
     - [ ] 实现libfuse open 接口
@@ -205,6 +205,6 @@
     - [ ] 实现libfuse flush 接口
 
 3. 编写测试用例进行单元测试：
-4. 添加系统调用Demo的功能：
+4. 添加额外的文件系统调用及丰富功能：
 5. 集成测试和性能分析：
 6. 补充文档、PPT和毕设论文：
