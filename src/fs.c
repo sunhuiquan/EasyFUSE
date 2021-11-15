@@ -283,10 +283,6 @@ int inner_unlink(const char *path)
 	if (inode_lock(dir_pinode) == -1) // 对dp加锁
 		return -1;
 
-	// 如果目录项不为空那么无法unlink该目录
-	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
-		goto bad;
-
 	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL)
 		goto bad;
 
@@ -299,6 +295,13 @@ int inner_unlink(const char *path)
 
 	if (inode_lock(pinode) == -1)
 		goto bad;
+
+	// 如果目录项不为空那么无法unlink该目录
+	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
+	{
+		inode_unlock_then_reduce_ref(pinode);
+		goto bad;
+	}
 
 	// 清除所在上一级目录的该目录项
 	memset(&dirent, 0, sizeof(struct dirent));
