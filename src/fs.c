@@ -190,7 +190,7 @@ int add_dirent_entry(struct inode *pdi, char *name, uint inum)
 }
 
 /* 创建一个type类型、path路径的文件，返回的inode指针是持有锁的 */
-struct inode *userspace_fs_create(const char *path, short type)
+struct inode *inner_create(const char *path, short type)
 {
 	struct inode *dir_pinode, *pinode;
 	char basename[MAX_NAME];
@@ -248,4 +248,16 @@ struct inode *userspace_fs_create(const char *path, short type)
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 		return NULL;
 	return pinode;
+}
+
+/* unlink删除目录项，并降低引用，userspace_fs_unlink和userspace_fs_rmdir都是通过内部函数实现 */
+int inner_unlink(const char *path)
+{
+	/* 我们这里只需要删除上一级目录的数据块中的该目录项，删除目录项记得要把name也清空，
+	 * 因为inum为0并不能完全代表未使用的情况，这里有点设计失误，然后减少该文件的inode
+	 * 的硬链接引用计数，然后成功返回，这里并不发生实际删除。
+	 *
+	 * 之后的 inode_reduce_ref() （包括该函数里面的这次调用）降低inode的引用
+	 * 如果发现ref和nlink都为0，这就会具体地释放inode所占的数据块，位图设置为0。
+	 */
 }

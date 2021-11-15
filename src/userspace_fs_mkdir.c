@@ -19,7 +19,7 @@ int userspace_fs_mkdir(const char *path, mode_t mode)
 	mode |= S_IFDIR; // libfuse 文档写着 To obtain the correct directory type bits use mode|S_IFDIR.
 
 	// to do??这里还没有实现mode_t权限的接口
-	if ((pinode = userspace_fs_create(path, FILE_DIR)) == NULL)
+	if ((pinode = inner_create(path, FILE_DIR)) == NULL)
 		return -1;
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
 		return -1;

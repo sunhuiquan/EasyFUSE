@@ -67,6 +67,9 @@ const char *current_dir_name(const char *path, char *name);
 int add_dirent_entry(struct inode *pdi, char *name, uint inum);
 
 /* 创建一个type类型、path路径的文件，返回的inode指针是持有锁的 */
-struct inode *userspace_fs_create(const char *path, short type);
+struct inode *inner_create(const char *path, short type);
+
+/* unlink删除目录项，并降低引用 */
+int inner_unlink(const char *path);
 
 #endif

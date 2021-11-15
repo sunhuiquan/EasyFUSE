@@ -12,7 +12,7 @@ int wraper(const char *path, short type)
 	if (in_transaction() == -1)
 		return -1;
 
-	if (userspace_fs_create(path, type) == NULL)
+	if (inner_create(path, type) == NULL)
 	{
 		if (out_transaction() == -1)
 			return -1;

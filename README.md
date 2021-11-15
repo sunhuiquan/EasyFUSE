@@ -194,12 +194,12 @@
     - [x] libfuse实现简易版本的getattr接口
     - [x] 实现libfuse readdir 接口
     - [x] 实现libfuse mkdir 接口
+    - [ ] 实现libfuse unlink 接口
     - [ ] 实现libfuse rmdir 接口
     - [ ] 实现libfuse open 接口
     - [ ] 实现libfuse mknod 接口
     - [ ] 实现libfuse read 接口
     - [ ] 实现libfuse write 接口
-    - [ ] 实现libfuse unlink 接口
     - [ ] 实现libfuse truncate 接口
     - [ ] 实现libfuse flush 接口
 
