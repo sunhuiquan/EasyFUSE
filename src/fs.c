@@ -8,6 +8,8 @@
 #include <pthread.h>
 #include <string.h>
 
+static int dir_is_empty(struct inode *pi);
+
 /* 返回路径文件所在的目录(不是文件本身，是它所在的目录)的 inode，通过iget，返回未加锁，且已增加了引用计数
  *
  * 注意const char*的path，因为我们只改变副本形参指针的指向，与外面的实参无关。
@@ -205,16 +207,25 @@ struct inode *inner_create(const char *path, short type)
 	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是没有加锁过的
 	{
 		if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
+		{
+			inode_unlock_then_reduce_ref(dir_pinode);
 			return NULL;
+		}
 
 		if (inode_lock(pinode) == -1) // 为了保证如果成功返回是有锁的，保持一致
+		{
+			inode_unlock_then_reduce_ref(dir_pinode);
 			return NULL;
+		}
 
 		if (pinode->dinode.type == type)
 			return pinode;
 
 		if (inode_unlock_then_reduce_ref(pinode) == -1)
+		{
+			inode_unlock_then_reduce_ref(dir_pinode);
 			return NULL;
+		}
 		return NULL;
 	}
 
@@ -223,10 +234,16 @@ struct inode *inner_create(const char *path, short type)
 	// 分配一个新的inode(一定是icache不命中)，内部通过iget得到缓存中的inode结构(此时valid为0，
 	// 实际内容未加载到内存中)，然后未持有锁，且引用计数为1
 	if ((pinode = inode_allocate(type)) == NULL) // 返回的是没有加锁的inode指针
+	{
+		inode_unlock_then_reduce_ref(dir_pinode);
 		return NULL;
+	}
 
 	if (inode_lock(pinode) == -1) // 加锁
+	{
+		inode_unlock_then_reduce_ref(dir_pinode);
 		return NULL;
+	}
 	pinode->dinode.nlink = 1;
 
 	if (type == FILE_DIR) // 添加 . 和 .. 目录项
@@ -234,16 +251,28 @@ struct inode *inner_create(const char *path, short type)
 		++pinode->dinode.nlink;		// . 指向自己
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
 		if (inode_update(dir_pinode) == -1)
+		{
+			inode_unlock_then_reduce_ref(dir_pinode);
 			return NULL;
+		}
 
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
+		{
+			inode_unlock_then_reduce_ref(dir_pinode);
 			return NULL;
+		}
 	}
 
 	if (inode_update(pinode) == -1)
+	{
+		inode_unlock_then_reduce_ref(dir_pinode);
 		return NULL;
+	}
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
+	{
+		inode_unlock_then_reduce_ref(dir_pinode);
 		return NULL;
+	}
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 		return NULL;
@@ -260,4 +289,54 @@ int inner_unlink(const char *path)
 	 * 之后的 inode_reduce_ref() （包括该函数里面的这次调用）降低inode的引用
 	 * 如果发现ref和nlink都为0，这就会具体地释放inode所占的数据块，位图设置为0。
 	 */
+	//  struct inode *ip, *dp;
+	//   struct dirent de;
+	//   char name[DIRSIZ], path[MAXPATH];
+	//   uint off;
+
+	//   if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
+	//     goto bad; ??
+
+	struct inode *dir_pinode, *pinode;
+	char basename[MAX_NAME];
+	struct dirent dirent;
+
+	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
+		return -1;
+	if (inode_lock(dir_pinode) == -1) // 对dp加锁
+		return -1;
+
+	if ((pinode = dir_find(dir_pinode, basename)) == NULL)
+		goto bad;
+	if (inode_lock(pinode) == -1)
+		goto bad;
+
+	if (pinode->dinode.nlink < 1)
+	{
+		inode_unlock_then_reduce_ref(pinode);
+		goto bad;
+	}
+
+	// --pinode->dinode.nlink;
+	// if (inode_update(pinode) == -1)
+	// 	goto bad;
+
+	// 如果目录项不为空那么无法unlink该目录
+	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
+	{
+		inode_unlock_then_reduce_ref(pinode);
+		goto bad;
+	}
+
+
+	return 0;
+bad:
+	inode_unlock_then_reduce_ref(dir_pinode);
+	return -1;
+}
+
+/* 判断目录项是否为空（除了"." ".."） */
+static int dir_is_empty(struct inode *pi)
+{
+	return 0;
 }
