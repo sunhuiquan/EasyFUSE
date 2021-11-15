@@ -207,25 +207,16 @@ struct inode *inner_create(const char *path, short type)
 	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是没有加锁过的
 	{
 		if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
-		{
-			inode_unlock_then_reduce_ref(dir_pinode);
-			return NULL;
-		}
+			goto bad;
 
 		if (inode_lock(pinode) == -1) // 为了保证如果成功返回是有锁的，保持一致
-		{
-			inode_unlock_then_reduce_ref(dir_pinode);
-			return NULL;
-		}
+			goto bad;
 
 		if (pinode->dinode.type == type)
 			return pinode;
 
 		if (inode_unlock_then_reduce_ref(pinode) == -1)
-		{
-			inode_unlock_then_reduce_ref(dir_pinode);
-			return NULL;
-		}
+			goto bad;
 		return NULL;
 	}
 
@@ -234,16 +225,11 @@ struct inode *inner_create(const char *path, short type)
 	// 分配一个新的inode(一定是icache不命中)，内部通过iget得到缓存中的inode结构(此时valid为0，
 	// 实际内容未加载到内存中)，然后未持有锁，且引用计数为1
 	if ((pinode = inode_allocate(type)) == NULL) // 返回的是没有加锁的inode指针
-	{
-		inode_unlock_then_reduce_ref(dir_pinode);
-		return NULL;
-	}
+		goto bad;
 
 	if (inode_lock(pinode) == -1) // 加锁
-	{
-		inode_unlock_then_reduce_ref(dir_pinode);
-		return NULL;
-	}
+		goto bad;
+
 	pinode->dinode.nlink = 1;
 
 	if (type == FILE_DIR) // 添加 . 和 .. 目录项
@@ -251,32 +237,25 @@ struct inode *inner_create(const char *path, short type)
 		++pinode->dinode.nlink;		// . 指向自己
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
 		if (inode_update(dir_pinode) == -1)
-		{
-			inode_unlock_then_reduce_ref(dir_pinode);
-			return NULL;
-		}
+			goto bad;
 
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
-		{
-			inode_unlock_then_reduce_ref(dir_pinode);
-			return NULL;
-		}
+			goto bad;
 	}
 
 	if (inode_update(pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(dir_pinode);
-		return NULL;
-	}
+		goto bad;
+
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
-	{
-		inode_unlock_then_reduce_ref(dir_pinode);
-		return NULL;
-	}
+		goto bad;
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 		return NULL;
 	return pinode;
+
+bad:
+	inode_unlock_then_reduce_ref(dir_pinode);
+	return NULL;
 }
 
 /* unlink删除目录项，并降低引用，userspace_fs_unlink和userspace_fs_rmdir都是通过内部函数实现 */
@@ -306,30 +285,55 @@ int inner_unlink(const char *path)
 	if (inode_lock(dir_pinode) == -1) // 对dp加锁
 		return -1;
 
+	// 如果目录项不为空那么无法unlink该目录
+	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
+		goto bad;
+
 	if ((pinode = dir_find(dir_pinode, basename)) == NULL)
 		goto bad;
 	if (inode_lock(pinode) == -1)
 		goto bad;
 
+
+	if (pinode->dinode.type == FILE_DIR)
+	{
+		--dir_pinode->dinode.nlink;
+		if (inode_update(dir_pinode) == -1) // 对于 ".." 减一次上级目录inode的硬链接计数
+		{
+			inode_unlock_then_reduce_ref(pinode);
+			goto bad;
+		}
+		--pinode->dinode.nlink; // 对于 "." 减一次该目录inode的硬链接计数
+		if (inode_update(pinode) == -1)
+		{
+			inode_unlock_then_reduce_ref(pinode);
+			goto bad;
+		}
+	}
+
+	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
+	{
+		inode_unlock_then_reduce_ref(pinode);
+		return -1;
+	}
+
 	if (pinode->dinode.nlink < 1)
 	{
 		inode_unlock_then_reduce_ref(pinode);
-		goto bad;
+		return -1;
 	}
-
-	// --pinode->dinode.nlink;
-	// if (inode_update(pinode) == -1)
-	// 	goto bad;
-
-	// 如果目录项不为空那么无法unlink该目录
-	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
+	// 减硬链接数s
+	--pinode->dinode.nlink;
+	if (inode_update(pinode) == -1)
 	{
 		inode_unlock_then_reduce_ref(pinode);
-		goto bad;
+		return -1;
 	}
 
-
+	if (inode_unlock_then_reduce_ref(pinode) == -1)
+		return -1;
 	return 0;
+
 bad:
 	inode_unlock_then_reduce_ref(dir_pinode);
 	return -1;
