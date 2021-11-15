@@ -8,8 +8,9 @@ int userspace_fs_unlink(const char *path)
 	if (in_transaction() == -1) // 进入事务
 		return -1;
 
-	if (inner_unlink(path) == -1)
-		return -1;
+	int ret;
+	if ((ret = inner_unlink(path)) != 0) // 可能返回-EINVAL来让libfuse得知对应错误
+		return ret;
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;

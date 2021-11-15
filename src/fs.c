@@ -7,6 +7,7 @@
 #include <sys/types.h>
 #include <pthread.h>
 #include <string.h>
+#include <errno.h>
 
 static int dir_is_empty(struct inode *pi);
 
@@ -268,17 +269,10 @@ int inner_unlink(const char *path)
 	 * 之后的 inode_reduce_ref() （包括该函数里面的这次调用）降低inode的引用
 	 * 如果发现ref和nlink都为0，这就会具体地释放inode所占的数据块，位图设置为0。
 	 */
-	//  struct inode *ip, *dp;
-	//   struct dirent de;
-	//   char name[DIRSIZ], path[MAXPATH];
-	//   uint off;
-
-	//   if(namecmp(name, ".") == 0 || namecmp(name, "..") == 0)
-	//     goto bad; ??
-
 	struct inode *dir_pinode, *pinode;
 	char basename[MAX_NAME];
 	struct dirent dirent;
+	uint offset;
 
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
 		return -1;
@@ -291,10 +285,24 @@ int inner_unlink(const char *path)
 
 	if ((pinode = dir_find(dir_pinode, basename)) == NULL)
 		goto bad;
+		
+	// rmdir无法删除.和..，返回-EINVAL告知libfuse错误
+	if (!strncmp(".", basename, MAX_NAME) || !strncmp("..", basename, MAX_NAME))
+	{
+		inode_unlock_then_reduce_ref(dir_pinode);
+		return -EINVAL;
+	}
+
 	if (inode_lock(pinode) == -1)
 		goto bad;
 
-
+	// 清除所在上一级目录的该目录项
+	memset(&dirent, 0, sizeof(struct dirent));
+	if (writeinode(dir_pinode, &dirent, offset, sizeof(struct dirent)) == -1)
+	{
+		inode_unlock_then_reduce_ref(pinode);
+		goto bad;
+	}
 	if (pinode->dinode.type == FILE_DIR)
 	{
 		--dir_pinode->dinode.nlink;

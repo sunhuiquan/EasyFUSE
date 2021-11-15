@@ -196,6 +196,7 @@
     - [x] 实现libfuse mkdir 接口
     - [ ] 实现libfuse unlink 接口
     - [ ] 实现libfuse rmdir 接口
+    - [ ] 实现libfuse link 接口
     - [ ] 实现libfuse open 接口
     - [ ] 实现libfuse mknod 接口
     - [ ] 实现libfuse read 接口
