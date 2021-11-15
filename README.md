@@ -194,14 +194,14 @@
     - [x] libfuse实现简易版本的getattr接口
     - [x] 实现libfuse readdir 接口
     - [x] 实现libfuse mkdir 接口
+    - [ ] 实现libfuse rmdir 接口
     - [ ] 实现libfuse open 接口
-    - [ ] 实现libfuse rmdir
-    - [ ] 实现libfuse mknod
-    - [ ] 实现libfuse write
-    - [ ] 实现libfuse read
-    - [ ] 实现libfuse unlink
-    - [ ] 实现libfuse truncate
-    - [ ] 实现libfuse flush
+    - [ ] 实现libfuse mknod 接口
+    - [ ] 实现libfuse read 接口
+    - [ ] 实现libfuse write 接口
+    - [ ] 实现libfuse unlink 接口
+    - [ ] 实现libfuse truncate 接口
+    - [ ] 实现libfuse flush 接口
 
 3. 编写测试用例进行单元测试：
 4. 添加系统调用Demo的功能：

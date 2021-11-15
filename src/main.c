@@ -18,6 +18,7 @@ static struct fuse_operations u_operation = {
 	.getattr = userspace_fs_stat,
 	.readdir = userspace_fs_readdir,
 	.mkdir = userspace_fs_mkdir,
+	.rmdir = userspace_fs_rmdir,
 	// .open = userspace_fs_open
 };
 

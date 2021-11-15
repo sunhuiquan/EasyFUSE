@@ -9,6 +9,7 @@ int userspace_fs_mkdir(const char *path, mode_t mode)
 {
 	struct inode *pinode;
 
+	/* 需要具体写磁盘，所以需要事务操作 */
 	if (in_transaction() == -1) // 进入事务
 		return -1;
 

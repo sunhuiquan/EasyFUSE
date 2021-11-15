@@ -23,4 +23,7 @@ int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 /* mkdir命令创建目录 */
 int userspace_fs_mkdir(const char *path, mode_t mode);
 
+/* rmdir命令删除目录 */
+int userspace_fs_rmdir(const char *path);
+
 #endif
