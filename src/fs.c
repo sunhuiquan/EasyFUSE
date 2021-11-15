@@ -351,8 +351,18 @@ bad:
 	return -1;
 }
 
-/* 判断目录项是否为空（除了"." ".."） */
-static int dir_is_empty(struct inode *pi)
+/* 判断目录项是否为空（除了"." ".."），调用时已加锁 */
+static int dir_is_empty(struct inode *pdi)
 {
-	return 0;
+	struct dirent dirent;
+	for (uint offset = 0; offset < pdi->dinode.size; offset += sizeof(struct dirent))
+	{
+		if (readinode(pdi, &dirent, offset, sizeof(struct dirent)) == -1)
+			return -1;
+		if (!strncmp(".", dirent.name, MAX_NAME) || !strncmp("..", dirent.name, MAX_NAME))
+			continue;
+		if (dirent.inum != 0 && *dirent.name != '\0') // 通过inum和name判断是否空闲，设计失误（inum为0不一定是空闲），必须要判断name
+			return 0;
+	}
+	return 1;
 }
