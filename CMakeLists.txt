@@ -23,8 +23,8 @@ add_executable(
   src/userspace_fs_stat.c
   src/userspace_fs_readdir.c
   src/userspace_fs_mkdir.c
-  src/userspace_fs_unlink.c,
-  src/userspace_fs_rmdir.c,
+  src/userspace_fs_unlink.c
+  src/userspace_fs_rmdir.c
   src/userspace_fs_open.c
   # 辅助代码
   src/util.c)
