@@ -184,7 +184,7 @@ int add_dirent_entry(struct inode *pdi, char *name, uint inum)
 	{
 		if (readinode(pdi, &dir, off, sizeof(struct dirent)) != sizeof(struct dirent))
 			return -1;
-		if (dir.inum == 0 && *dir.name != '\0') // 判断name是为了防止根目录，所以unlink一定要清空inum和name
+		if (dir.inum == 0 && *dir.name == '\0') // 判断name是为了防止根目录，所以unlink一定要清空inum和name
 			break;
 	}
 
@@ -247,11 +247,10 @@ struct inode *inner_create(const char *path, short type)
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
 			goto bad;
 	}
-
 	if (inode_update(pinode) == -1)
 		goto bad;
 
-	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
+	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1) // wrong??
 		goto bad;
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
@@ -283,7 +282,7 @@ int inner_unlink(const char *path)
 	if (inode_lock(dir_pinode) == -1) // 对dp加锁
 		return -1;
 
-	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL)
+	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL) // wrong??
 		goto bad;
 
 	// rmdir无法删除.和..，返回-EINVAL告知libfuse错误
