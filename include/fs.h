@@ -58,7 +58,7 @@ struct inode *find_path_inode(const char *path, char *name);
 /* 通过目录 inode 查找该目录下对应 name 的 inode 并返回，通过iget，返回未加锁，且已增加了引用计数。
  * (内存中调用iget就说明有新的对象指向了这个inode缓存，调用iget就会导致引用计数+1)
  */
-struct inode *dir_find(struct inode *pdi, char *name);
+struct inode *dir_find(struct inode *pdi, char *name, uint *offset);
 
 /* 获取当前层(比如中间的路径名，直到最后的文件名)的路径名 */
 const char *current_dir_name(const char *path, char *name);

@@ -48,7 +48,7 @@ struct inode *find_dir_inode(const char *path, char *name)
 		}
 
 		// 查找目录项，通过已有的该目录下的 inode 获取对应 name 的 inode
-		if ((next = dir_find(pinode, name)) == NULL)
+		if ((next = dir_find(pinode, name, NULL)) == NULL)
 		{
 			if (inode_unlock_then_reduce_ref(pinode) == -1)
 				return NULL;
@@ -86,7 +86,7 @@ struct inode *find_path_inode(const char *path, char *name)
 		}
 
 		// 查找目录项，通过已有的该目录下的 inode 获取对应 name 的 inode
-		if ((next = dir_find(pinode, name)) == NULL)
+		if ((next = dir_find(pinode, name, NULL)) == NULL)
 		{
 			if (inode_unlock_then_reduce_ref(pinode) == -1)
 				return NULL;
@@ -138,7 +138,7 @@ const char *current_dir_name(const char *path, char *name)
  *
  * \param pdi A pointer to current directory inode.
  */
-struct inode *dir_find(struct inode *pdi, char *name)
+struct inode *dir_find(struct inode *pdi, char *name, uint *offset)
 {
 	struct dirent dirent;
 
@@ -151,7 +151,11 @@ struct inode *dir_find(struct inode *pdi, char *name)
 		if (readinode(pdi, &dirent, off, sizeof(struct dirent)) != sizeof(struct dirent))
 			return NULL;
 		if (dirent.inum != 0 && !strncmp(dirent.name, name, MAX_NAME))
+		{
+			if (offset)
+				*offset = off;
 			return iget(dirent.inum);
+		}
 	}
 	return NULL;
 }
@@ -162,7 +166,7 @@ int add_dirent_entry(struct inode *pdi, char *name, uint inum)
 	struct dirent dir;
 	struct inode *pi;
 
-	if ((pi = dir_find(pdi, name)) != NULL)
+	if ((pi = dir_find(pdi, name, NULL)) != NULL)
 	{
 		if (inode_reduce_ref(pi) == -1) // 没加锁，所以只减引用计数
 			return -1;
@@ -205,7 +209,7 @@ struct inode *inner_create(const char *path, short type)
 		return NULL;
 
 	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
-	if ((pinode = dir_find(dir_pinode, basename)) != NULL) // dir_find获取的inode是没有加锁过的
+	if ((pinode = dir_find(dir_pinode, basename, NULL)) != NULL) // dir_find获取的inode是没有加锁过的
 	{
 		if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
 			goto bad;
@@ -283,9 +287,9 @@ int inner_unlink(const char *path)
 	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
 		goto bad;
 
-	if ((pinode = dir_find(dir_pinode, basename)) == NULL)
+	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL)
 		goto bad;
-		
+
 	// rmdir无法删除.和..，返回-EINVAL告知libfuse错误
 	if (!strncmp(".", basename, MAX_NAME) || !strncmp("..", basename, MAX_NAME))
 	{
