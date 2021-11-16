@@ -169,6 +169,9 @@ int add_dirent_entry(struct inode *pdi, char *name, uint inum)
 	struct dirent dir;
 	struct inode *pi;
 
+	if (strlen(name) >= MAX_NAME)
+		return -1;
+
 	if ((pi = dir_find(pdi, name, NULL)) != NULL)
 	{
 		if (inode_reduce_ref(pi) == -1) // 没加锁，所以只减引用计数
