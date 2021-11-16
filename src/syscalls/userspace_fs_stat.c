@@ -11,11 +11,12 @@
 // to do 增加权限标志，具体的权限检测是linux做的，我们只是设置标志位
 int userspace_fs_stat(const char *path, struct stat *sbuf)
 {
-	if (strlen(path) >= MAX_NAME) // 等于会没有'\0'导致溢出
-		return -1;
-
 	char basename[MAX_NAME];
 	struct inode *pinode;
+
+	if (path == NULL || strlen(path) >= MAX_NAME)
+		return -1;
+
 	if ((pinode = find_path_inode(path, basename)) == NULL)
 		return -ENOENT; // 无此文件，用于通知ligfuse LOOK UP找不到文件
 

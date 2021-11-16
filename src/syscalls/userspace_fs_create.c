@@ -9,6 +9,9 @@ int userspace_fs_create(const char *path, mode_t mode, struct fuse_file_info *fi
 {
 	struct inode *pinode;
 
+	if (path == NULL || strlen(path) >= MAX_NAME)
+		return -1;
+
 	/* 需要具体写磁盘，所以需要事务操作 */
 	if (in_transaction() == -1) // 进入事务
 		return -1;

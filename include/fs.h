@@ -72,4 +72,7 @@ struct inode *inner_create(const char *path, short type);
 /* unlink删除目录项，并降低引用 */
 int inner_unlink(const char *path);
 
+/* 创建硬链接内部实现函数 */
+int inner_link(const char *oldpath, const char *newpath);
+
 #endif

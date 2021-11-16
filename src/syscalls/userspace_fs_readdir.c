@@ -8,12 +8,12 @@
 int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 						 off_t offset, struct fuse_file_info *fi)
 {
-	if (strlen(path) >= MAX_NAME) // 等于会没有'\0'导致溢出
-		return -1;
-
 	char basename[MAX_NAME];
 	struct inode *pinode;
 	struct dirent dir;
+
+	if (path == NULL || strlen(path) >= MAX_NAME)
+		return -1;
 
 	if ((pinode = find_path_inode(path, basename)) == NULL)
 		return -1;

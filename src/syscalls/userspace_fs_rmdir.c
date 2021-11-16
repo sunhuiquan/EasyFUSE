@@ -4,6 +4,8 @@
 /* rmdir命令删除目录，注意要是空目录 */
 int userspace_fs_rmdir(const char *path)
 {
+	if (path == NULL || strlen(path) >= MAX_NAME)
+		return -1;
 
 	/* 需要具体写磁盘，所以需要事务操作 */
 	if (in_transaction() == -1) // 进入事务

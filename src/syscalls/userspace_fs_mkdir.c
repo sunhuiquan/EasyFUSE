@@ -9,11 +9,11 @@ int userspace_fs_mkdir(const char *path, mode_t mode)
 {
 	struct inode *pinode;
 
-	/* 需要具体写磁盘，所以需要事务操作 */
-	if (in_transaction() == -1) // 进入事务
+	if (path == NULL || strlen(path) >= MAX_NAME)
 		return -1;
 
-	if (strlen(path) >= MAX_NAME) // 等于会没有'\0'导致溢出
+	/* 需要具体写磁盘，所以需要事务操作 */
+	if (in_transaction() == -1) // 进入事务
 		return -1;
 
 	mode |= S_IFDIR; // libfuse 文档写着 To obtain the correct directory type bits use mode|S_IFDIR.
