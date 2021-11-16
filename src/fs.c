@@ -483,7 +483,10 @@ int inner_symlink(const char *oldpath, const char *newpath)
 		return -1;
 
 	if (writeinode(pinode, oldpath, 0, MAX_PATH) == -1)
+	{
+		inode_unlock_then_reduce_ref(pinode);
 		return -1;
+	}
 
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
 		return -1; // to do
