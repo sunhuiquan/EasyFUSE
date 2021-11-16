@@ -468,6 +468,7 @@ bad:
 /* 创建符号链接内部实现函数 */
 int inner_symlink(const char *oldpath, const char *newpath)
 {
+	struct inode *pinode;
 	if (oldpath == NULL || newpath == NULL)
 		return -1;
 	if (strlen(oldpath) >= MAX_PATH || strlen(newpath) >= MAX_PATH)
@@ -478,4 +479,13 @@ int inner_symlink(const char *oldpath, const char *newpath)
 	 *
 	 * 与此不同，硬链接只是一个目录项，不是一个文件，没有自己的inode。
 	 */
+	if ((pinode = inner_create(newpath, FILE_LNK)) == NULL)
+		return -1;
+
+	if (writeinode(pinode, oldpath, 0, MAX_PATH) == -1)
+		return -1;
+
+	if (inode_unlock_then_reduce_ref(pinode) == -1)
+		return -1; // to do
+	return 0;
 }
