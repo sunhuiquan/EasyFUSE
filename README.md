@@ -209,7 +209,7 @@ to do 还有一堆
     - [x] 实现 FUSE rmdir 系统调用
     - [x] 实现 FUSE create 系统调用
     - [x] 实现 FUSE unlink 系统调用
-    - [ ] 实现 FUSE link 系统调用
+    - [x] 实现 FUSE link 系统调用
     - [ ] 实现 FUSE symlink 系统调用
     - [ ] 实现 FUSE readlink 系统调用
     - [ ] 实现 FUSE open 系统调用
