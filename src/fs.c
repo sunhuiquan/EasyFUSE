@@ -27,7 +27,10 @@ struct inode *find_dir_inode(const char *path, char *name)
 			return NULL;
 
 		if (inode_lock(pinode) == -1)
+		{
+			inode_reduce_ref(pinode);
 			return NULL;
+		}
 
 		// name 是当前层的中间name
 		// 路径中间的一个name不是目录文件，错误
@@ -206,22 +209,31 @@ struct inode *inner_create(const char *path, short type)
 		return NULL;
 
 	if (inode_lock(dir_pinode) == -1) // 对dp加锁
+	{
+		inode_reduce_ref(dir_pinode);
 		return NULL;
+	}
 
 	// 已存在该 name 的文件，直接返回这个（类似 O_CREATE 不含 O_EXEC 的语义）
 	if ((pinode = dir_find(dir_pinode, basename, NULL)) != NULL) // dir_find获取的inode是没有加锁过的
 	{
 		if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
-			goto bad;
+		{
+			inode_reduce_ref(pinode);
+			return NULL;
+		}
 
 		if (inode_lock(pinode) == -1) // 为了保证如果成功返回是有锁的，保持一致
-			goto bad;
+		{
+			inode_reduce_ref(pinode);
+			return NULL;
+		}
 
 		if (pinode->dinode.type == type)
 			return pinode;
 
 		if (inode_unlock_then_reduce_ref(pinode) == -1)
-			goto bad;
+			return NULL;
 		return NULL;
 	}
 
@@ -233,7 +245,10 @@ struct inode *inner_create(const char *path, short type)
 		goto bad;
 
 	if (inode_lock(pinode) == -1) // 加锁
+	{
+		inode_reduce_ref(pinode);
 		goto bad;
+	}
 
 	pinode->dinode.nlink = 1;
 
@@ -242,19 +257,34 @@ struct inode *inner_create(const char *path, short type)
 		++pinode->dinode.nlink;		// . 指向自己
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
 		if (inode_update(dir_pinode) == -1)
+		{
+			inode_unlock_then_reduce_ref(pinode);
 			goto bad;
+		}
 
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
+		{
+			inode_unlock_then_reduce_ref(pinode);
 			goto bad;
+		}
 	}
 	if (inode_update(pinode) == -1)
+	{
+		inode_unlock_then_reduce_ref(pinode);
 		goto bad;
+	}
 
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1) // wrong??
+	{
+		inode_unlock_then_reduce_ref(pinode);
 		goto bad;
+	}
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
+	{
+		inode_unlock_then_reduce_ref(pinode);
 		return NULL;
+	}
 	return pinode;
 
 bad:
@@ -280,7 +310,10 @@ int inner_unlink(const char *path)
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
 		return -1;
 	if (inode_lock(dir_pinode) == -1) // 对dp加锁
+	{
+		inode_reduce_ref(dir_pinode);
 		return -1;
+	}
 
 	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL) // wrong??
 		goto bad;
@@ -293,7 +326,10 @@ int inner_unlink(const char *path)
 	}
 
 	if (inode_lock(pinode) == -1)
+	{
+		inode_reduce_ref(pinode);
 		goto bad;
+	}
 
 	// 如果目录项不为空那么无法unlink该目录
 	if (pinode->dinode.type == FILE_DIR && !dir_is_empty(pinode))
