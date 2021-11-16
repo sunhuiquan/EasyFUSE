@@ -14,4 +14,7 @@ void pr_superblock_information(const struct super_block *superblock);
 
 void pr(const char *msg);
 
+/* 出现致命错误，退出程序 */
+void panic(const char *msg);
+
 #endif

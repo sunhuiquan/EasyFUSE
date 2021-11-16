@@ -35,3 +35,10 @@ void pr(const char *msg)
 {
 	printf("%s\n", msg);
 }
+
+/* 出现致命错误，退出程序 */
+void panic(const char *msg)
+{
+	printf("panic %s\n", msg);
+	exit(EXIT_FAILURE);
+}

@@ -2,6 +2,7 @@
 #include "inode_cache.h"
 #include "block_cache.h"
 #include "log.h"
+#include "util.h"
 #include <string.h>
 #include <libgen.h>
 #include <sys/types.h>
@@ -450,6 +451,12 @@ int inner_link(const char *oldpath, const char *newpath)
 		goto bad;
 	}
 
+	if (pinode->dinode.type == FILE_DIR) // 不能对目录文件建立硬链接
+	{
+		inode_unlock_then_reduce_ref(pinode);
+		goto bad;
+	}
+
 	// 在新路径所在的上级目录创建目录项
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1)
 	{
@@ -457,21 +464,24 @@ int inner_link(const char *oldpath, const char *newpath)
 		goto bad;
 	}
 
+	/* 一个健壮的程序，如果出错后还想再继续指向，那么一定要在出错的地方进行错误处理，比如
+	 * 释放之前申请的资源，撤回对全局数据结构的更改(不然你这里失败了，理应全局数据结构不变
+	 * 但如果你不撤回中间改变的地方，那么会造成数据不一致的问题，干扰全局，非常严重)。
+	 *
+	 * 这里使用panic的原因是因为，我们这里已经创建了目录项，或者如下面已经改变了nlink，
+	 * 虽然这里仍然可以处理，在错误处理中把目录项再删除,或者再递减nlink然后inode_update
+	 * 更新，但是这里处理太过繁杂，所以我们直接panic退出不再处理此处的错误。
+	 */
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		return NULL;
-	}
+		panic("fs.c/inner_link()");
 
 	// 增加inode硬链接计数
 	++pinode->dinode.nlink;
 	if (inode_update(pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		return -1;
-	}
+		panic("fs.c/inner_link()");
+
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
-		return -1;
+		panic("fs.c/inner_link()");
 	return 0;
 
 bad:
