@@ -62,6 +62,6 @@ int inode_unlock(struct inode *pi);
 int readinode(struct inode *pi, void *dst, uint off, uint n);
 
 // 写 inode 里面的数据，实际上是通过 inode 和对应偏移量得到对应数据块的位置，然后写数据块
-int writeinode(struct inode *pi, void *src, uint off, uint n);
+int writeinode(struct inode *pi, const void *src, uint off, uint n);
 
 #endif

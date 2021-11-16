@@ -130,7 +130,7 @@ int balloc()
 			for (k = 0; k < 8; bit >>= 1, ++k)
 				if ((bit & 1) == 0) // == 优先级比 & 高，所以要加括号
 				{
-					bbuf->data[j] &= (1 << k); // 设置对应位图位为1
+					bbuf->data[j] |= (1 << k); // 设置对应位图位为1
 					if (write_log_head(bbuf) == -1)
 					{
 						block_unlock_then_reduce_ref(bbuf);

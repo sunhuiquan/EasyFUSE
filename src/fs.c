@@ -489,6 +489,6 @@ int inner_symlink(const char *oldpath, const char *newpath)
 	}
 
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
-		return -1; // to do
+		return -1;
 	return 0;
 }

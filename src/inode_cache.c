@@ -332,18 +332,20 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
  * 看起来是直接写到对应磁盘（虽然实际上是写入block_cache缓存，还没有实际写入磁盘中，
  * 但从inode layer级别上来看是认为写入磁盘了）
  */
-int writeinode(struct inode *pi, void *src, uint off, uint n)
+int writeinode(struct inode *pi, const void *src, uint off, uint n)
 {
 	uint blockno;
 	struct cache_block *bbuf;
 	int writen, len;
+	const char *p = (const char *)src;
+	// 形参是const void*是方便各种类型实参的调用，虽然void*加1和char一样地址也是+1，但是毕竟这个有点不符合规范
 
 	if (n < 0 || off > pi->dinode.size)
 		return -1;
 	if (off + n > MAX_FILE_BLOCK_NUM * BLOCK_SIZE)
 		return -1;
 
-	for (writen = 0; writen < n; writen += len, off += len, src += len)
+	for (writen = 0; writen < n; writen += len, off += len, p += len)
 	{
 		// 得到所在偏移量所在的块，并读到缓存
 		if ((blockno = get_data_blockno_by_inode(pi, off)) == -1)
@@ -351,7 +353,7 @@ int writeinode(struct inode *pi, void *src, uint off, uint n)
 		if ((bbuf = block_read(blockno)) == NULL)
 			return -1;
 		len = min(n - writen, BLOCK_SIZE - off % BLOCK_SIZE);
-		memmove(bbuf->data + (off % BLOCK_SIZE), src, len);
+		memmove(bbuf->data + (off % BLOCK_SIZE), p, len);
 		if (write_log_head(bbuf) == -1)
 		{
 			block_unlock_then_reduce_ref(bbuf);
