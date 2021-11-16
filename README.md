@@ -195,14 +195,14 @@
     - [x] 实现libfuse readdir 接口
     - [x] 实现libfuse mkdir 接口
     - [x] 实现libfuse rmdir 接口
-    - [ ] 实现libfuse create 接口
-    - [ ] 实现libfuse unlink 接口
+    - [x] 实现libfuse unlink 接口
+    - [x] 实现libfuse create 接口
     - [ ] 实现libfuse link 接口
+    - [ ] 实现libfuse flush 接口
     - [ ] 实现libfuse open 接口
     - [ ] 实现libfuse read 接口
     - [ ] 实现libfuse write 接口
     - [ ] 实现libfuse truncate 接口
-    - [ ] 实现libfuse flush 接口
 
 3. 编写测试用例进行单元测试：
 4. 添加额外的文件系统调用及丰富功能：
