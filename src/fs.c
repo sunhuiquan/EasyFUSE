@@ -400,6 +400,12 @@ int inner_link(const char *oldpath, const char *newpath)
 	char temp[MAX_NAME];	  // oldpath basename 用不到
 	uint offset;
 
+	/* 这里一定要先给oldpath文件find_dir_inode()后加锁，这是因为首先oldpath文件不可能是目录，这样不会干扰 find_dir_inode() 和
+	 * find_path_inode() 内部按照从根路径向末尾加锁的顺序来对每一级的目录的inode加锁的方式，因为oldpath不可能是目录；如果先给newpath
+	 * 所在的上级目录加锁之后，那我们对oldpath文件find_dir_inode()就可能死锁，因为newpath所在的上级目录可能是oldpath的祖先目录之一，
+	 * 就会导致oldpath文件find_dir_inode()的时候死锁。
+	 */
+
 	if (oldpath == NULL || newpath == NULL)
 		return -1;
 	if (strlen(oldpath) >= MAX_NAME || strlen(newpath) >= MAX_NAME)
