@@ -209,7 +209,7 @@ struct inode *inner_create(const char *path, short type)
 	struct inode *dir_pinode, *pinode;
 	char basename[MAX_NAME];
 
-	if (path == NULL || strlen(path) >= MAX_NAME)
+	if (path == NULL || strlen(path) >= MAX_PATH)
 		return NULL;
 
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
@@ -299,7 +299,7 @@ int inner_unlink(const char *path)
 	struct dirent dirent;
 	uint offset;
 
-	if (path == NULL || strlen(path) >= MAX_NAME)
+	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 
 	if ((dir_pinode = find_dir_inode(path, basename)) == NULL)
@@ -402,7 +402,7 @@ int inner_link(const char *oldpath, const char *newpath)
 
 	if (oldpath == NULL || newpath == NULL)
 		return -1;
-	if (strlen(oldpath) >= MAX_NAME || strlen(newpath) >= MAX_NAME)
+	if (strlen(oldpath) >= MAX_PATH || strlen(newpath) >= MAX_PATH)
 		return -1;
 
 	/* 这里一定要先给oldpath文件find_dir_inode()后加锁，这是因为首先oldpath文件不可能是目录，这样不会干扰 find_dir_inode() 和
@@ -463,4 +463,19 @@ int inner_link(const char *oldpath, const char *newpath)
 bad:
 	inode_unlock_then_reduce_ref(pinode);
 	return -1;
+}
+
+/* 创建符号链接内部实现函数 */
+int inner_symlink(const char *oldpath, const char *newpath)
+{
+	if (oldpath == NULL || newpath == NULL)
+		return -1;
+	if (strlen(oldpath) >= MAX_PATH || strlen(newpath) >= MAX_PATH)
+		return -1;
+
+	/* 符号链接和硬链接不同，本质是一个文件，有自己的inode，我们的实现是让它有一个数据块，然后里面存着
+	 * MAX_PATH长度的路径，因此符号链接的文件内容就是指向的路径。
+	 *
+	 * 与此不同，硬链接只是一个目录项，不是一个文件，没有自己的inode。
+	 */
 }

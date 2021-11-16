@@ -12,7 +12,7 @@ int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 	struct inode *pinode;
 	struct dirent dir;
 
-	if (path == NULL || strlen(path) >= MAX_NAME)
+	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 
 	if ((pinode = find_path_inode(path, basename)) == NULL)

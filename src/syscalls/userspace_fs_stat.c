@@ -14,7 +14,7 @@ int userspace_fs_stat(const char *path, struct stat *sbuf)
 	char basename[MAX_NAME];
 	struct inode *pinode;
 
-	if (path == NULL || strlen(path) >= MAX_NAME)
+	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 
 	if ((pinode = find_path_inode(path, basename)) == NULL)

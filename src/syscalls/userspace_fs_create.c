@@ -9,14 +9,11 @@ int userspace_fs_create(const char *path, mode_t mode, struct fuse_file_info *fi
 {
 	struct inode *pinode;
 
-	if (path == NULL || strlen(path) >= MAX_NAME)
+	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 
 	/* 需要具体写磁盘，所以需要事务操作 */
 	if (in_transaction() == -1) // 进入事务
-		return -1;
-
-	if (strlen(path) >= MAX_NAME) // 等于会没有'\0'导致溢出
 		return -1;
 
 	// to do??这里还没有实现mode_t权限的接口

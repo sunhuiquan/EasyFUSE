@@ -9,7 +9,7 @@ int userspace_fs_mkdir(const char *path, mode_t mode)
 {
 	struct inode *pinode;
 
-	if (path == NULL || strlen(path) >= MAX_NAME)
+	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 
 	/* 需要具体写磁盘，所以需要事务操作 */

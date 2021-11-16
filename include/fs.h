@@ -41,7 +41,8 @@ struct super_block // super block 在内存中的数据结构
 	ulong magic;			   // 魔数，用于验证使用的FS确实是经过初始化，且是这个FS而不是其他FS的验证数
 };
 
-#define MAX_NAME 14 // 路径名最大长度
+#define MAX_NAME 14 // basename 最大长度
+#define MAX_PATH 1024 // 路径最大长度
 
 struct dirent
 {
@@ -74,5 +75,8 @@ int inner_unlink(const char *path);
 
 /* 创建硬链接内部实现函数 */
 int inner_link(const char *oldpath, const char *newpath);
+
+/* 创建符号链接内部实现函数 */
+int inner_symlink(const char *oldpath, const char *newpath);
 
 #endif

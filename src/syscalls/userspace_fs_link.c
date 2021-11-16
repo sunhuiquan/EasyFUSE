@@ -8,7 +8,7 @@ int userspace_fs_link(const char *oldpath, const char *newpath)
 {
 	if (oldpath == NULL || newpath == NULL)
 		return -1;
-	if (strlen(oldpath) >= MAX_NAME || strlen(newpath) >= MAX_NAME)
+	if (strlen(oldpath) >= MAX_PATH || strlen(newpath) >= MAX_PATH)
 		return -1;
 
 	/* 需要具体写磁盘，所以需要事务操作 */
