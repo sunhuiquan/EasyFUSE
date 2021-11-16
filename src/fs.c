@@ -264,34 +264,19 @@ struct inode *inner_create(const char *path, short type)
 		++pinode->dinode.nlink;		// . 指向自己
 		++dir_pinode->dinode.nlink; // .. 指向上一级目录
 		if (inode_update(dir_pinode) == -1)
-		{
-			inode_unlock_then_reduce_ref(pinode);
-			goto bad;
-		}
+			panic("fs.c/inner_create()");
 
 		if (add_dirent_entry(pinode, ".", pinode->inum) == -1 || add_dirent_entry(pinode, "..", dir_pinode->inum) == -1)
-		{
-			inode_unlock_then_reduce_ref(pinode);
-			goto bad;
-		}
+			panic("fs.c/inner_create()");
 	}
 	if (inode_update(pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		goto bad;
-	}
+		panic("fs.c/inner_create()");
 
 	if (add_dirent_entry(dir_pinode, basename, pinode->inum) == -1) // wrong??
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		goto bad;
-	}
+		panic("fs.c/inner_create()");
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		return NULL;
-	}
+		panic("fs.c/inner_create()");
 	return pinode;
 
 bad:
@@ -359,39 +344,24 @@ int inner_unlink(const char *path)
 	{
 		--dir_pinode->dinode.nlink;
 		if (inode_update(dir_pinode) == -1) // 对于 ".." 减一次上级目录inode的硬链接计数
-		{
-			inode_unlock_then_reduce_ref(pinode);
-			goto bad;
-		}
+			panic("fs.c/inner_unlink()");
 		--pinode->dinode.nlink; // 对于 "." 减一次该目录inode的硬链接计数
 		if (inode_update(pinode) == -1)
-		{
-			inode_unlock_then_reduce_ref(pinode);
-			goto bad;
-		}
+			panic("fs.c/inner_unlink()");
 	}
 
 	if (inode_unlock_then_reduce_ref(dir_pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		return -1;
-	}
+		panic("fs.c/inner_unlink()");
 
 	if (pinode->dinode.nlink < 1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		return -1;
-	}
+		panic("fs.c/inner_unlink()");
 	// 减硬链接数s
 	--pinode->dinode.nlink;
 	if (inode_update(pinode) == -1)
-	{
-		inode_unlock_then_reduce_ref(pinode);
-		return -1;
-	}
+		panic("fs.c/inner_unlink()");
 
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
-		return -1;
+		panic("fs.c/inner_unlink()");
 	return 0;
 
 bad:
