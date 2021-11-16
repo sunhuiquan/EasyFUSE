@@ -1,5 +1,6 @@
 #include "userspace_fs_calls.h"
 #include "log.h"
+#include <string.h>
 
 /* 创建符号链接，可以为目录创建符号链接 */
 int userspace_fs_symlink(const char *oldpath, const char *newpath)

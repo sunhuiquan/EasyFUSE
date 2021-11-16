@@ -456,5 +456,5 @@ int inner_link(const char *oldpath, const char *newpath)
 
 bad:
 	inode_unlock_then_reduce_ref(dir_pinode);
-	return NULL;
+	return -1;
 }

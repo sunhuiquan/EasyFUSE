@@ -1,5 +1,6 @@
 #include "userspace_fs_calls.h"
 #include "log.h"
+#include <string.h>
 
 /* 删除目录项，降低nlink计数，注意只对非目录文件有效 */
 int userspace_fs_unlink(const char *path)

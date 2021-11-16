@@ -1,5 +1,6 @@
 #include "userspace_fs_calls.h"
 #include "log.h"
+#include <string.h>
 
 /* rmdir命令删除目录，注意要是空目录 */
 int userspace_fs_rmdir(const char *path)

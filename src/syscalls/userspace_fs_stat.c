@@ -3,8 +3,8 @@
 #include "disk.h"
 #include "inode_cache.h"
 #include "util.h"
-#include <string.h>
 #include <errno.h>
+#include <string.h>
 
 /* 获取文件属性，返回-ENOENT代表无此文件，注意要直接返回给libfuse接口用于通知 */
 // to do 没有加时间属性和设备属性
