@@ -23,16 +23,25 @@ int userspace_fs_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 /* mkdir命令创建目录 */
 int userspace_fs_mkdir(const char *path, mode_t mode);
 
-/* 删除目录项，降低nlink计数 */
-int userspace_fs_unlink(const char *path);
-
 /* rmdir命令删除目录 */
 int userspace_fs_rmdir(const char *path);
 
-/* 实现 libfuse open 系统调用 */
-int userspace_fs_open(const char *path, struct fuse_file_info *fi);
-
 /* 实现 libfuse create 系统调用，可用于创建普通文件 */
 int userspace_fs_create(const char *path, mode_t mode, struct fuse_file_info *fi);
+
+/* 删除目录项，降低nlink计数 */
+int userspace_fs_unlink(const char *path);
+
+/* 创建硬链接，注意不能给目录创建硬链接 */
+int userspace_fs_link(const char *oldpath, const char *newpath);
+
+/* 创建符号链接，可以为目录创建符号链接 */
+int userspace_fs_symlink(const char *oldpath, const char *newpath);
+
+/* 读符号链接，把指向的路径写到buf里面，注意这是对符号链接操作 */
+int userspace_fs_readlink(const char *path, char *buf, size_t bufsz);
+
+/* 实现 libfuse open 系统调用 */
+int userspace_fs_open(const char *path, struct fuse_file_info *fi);
 
 #endif

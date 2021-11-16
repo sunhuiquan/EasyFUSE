@@ -37,6 +37,8 @@
    11. 文件描述符 layer —— 指向打开文件描述，linux内核维护的信息。  
   （注：为了简单，我们实现的是high-lever libfuse接口，使用路径；另外fd的层次是高于VFS的，也就是说打开不同文件系统而来的fd和相同FS的打开得到的fd没有什么不同，都是顺序递增，不可能重复的，由内核维护，fd和FUSE一点关系都没有）
 
+  to do 这里有些不准确
+
 ### 3. 并发支持
 
    1. 通过pthread的mutex作为使用的锁机制，保证临界区的原子性访问，分别对于缓存区整体、每一个缓存区中的元素拥有一个锁，建立两层锁机制。例如第一层锁是对于inode cache整体有一个锁保证了一个 inode 在缓存只有一个副本(因为to do)，以及缓存 inode 的引用计数正确（to do）；第二层锁是对每个内存中的 inode 都有一个锁，保证了可以独占访问 inode 的相关字段，以及 inode 所对应的数据块（to do）。对于数据块整体 cache 结构和内存中的单个数据块结构同理，也是这样的二层锁机制保证。
@@ -46,7 +48,7 @@
 
 ### 4. 日志机制
 
-     to do 还在画饼中
+     to do 懒得写文档
 
 ---
 
@@ -59,6 +61,8 @@
    - [inode_cache.c](src/inode_cache.c) Inode缓存层(block layer)代码，提供磁盘上的Inode结构加载到内存的缓存机制，不过实际上Inode读写请求的操作是通过 block layer 这一中间层实现的，会先读到 block cache，然后再从 block cache读到 inode cache。
   
 2. 文件系统调用
+    to do 目录改变了
+
    - [userspace_fs_call.h](include/userspace_fs_calls.h) 声明所有FUSE的文件系统调用。
    - [fs.c](src/fs.c) 实现各文件系统调用内部使用的各种辅助函数。
    - [userspace_fs_open.c](src/userspace_fs_open.c) 实现 libfuse open 打开文件接口。
@@ -175,6 +179,8 @@
 [5] _LINUX/UNIX 系统编程手册 (TLPI)_  
 [6] _操作系统概念 (OSC)_
 
+to do 还有一堆
+
 ---
 
 ## Timeline
@@ -191,18 +197,20 @@
     - [x] 实现logging layer，日志机制
 
 2. 实现主要的文件系统调用：
-    - [x] libfuse实现简易版本的getattr接口
-    - [x] 实现libfuse readdir 接口
-    - [x] 实现libfuse mkdir 接口
-    - [x] 实现libfuse rmdir 接口
-    - [x] 实现libfuse unlink 接口
-    - [x] 实现libfuse create 接口
-    - [ ] 实现libfuse link 接口
-    - [ ] 实现libfuse flush 接口
-    - [ ] 实现libfuse open 接口
-    - [ ] 实现libfuse read 接口
-    - [ ] 实现libfuse write 接口
-    - [ ] 实现libfuse truncate 接口
+    - [x] 实现 FUSE getattr 系统调用
+    - [x] 实现 FUSE readdir 系统调用
+    - [x] 实现 FUSE mkdir 系统调用
+    - [x] 实现 FUSE rmdir 系统调用
+    - [x] 实现 FUSE create 系统调用
+    - [x] 实现 FUSE unlink 系统调用
+    - [ ] 实现 FUSE link 系统调用
+    - [ ] 实现 FUSE symlink 系统调用
+    - [ ] 实现 FUSE readlink 系统调用
+    - [ ] 实现 FUSE flush 系统调用
+    - [ ] 实现 FUSE open 系统调用
+    - [ ] 实现 FUSE read 系统调用
+    - [ ] 实现 FUSE write 系统调用
+    - [ ] 实现 FUSE truncate 系统调用
 
 3. 编写测试用例进行单元测试：
 4. 添加额外的文件系统调用及丰富功能：
