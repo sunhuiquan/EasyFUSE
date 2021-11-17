@@ -23,7 +23,10 @@ int userspace_fs_stat(const char *path, struct stat *sbuf)
 	// 给pinode加锁，虽然这里是读，但是如果中间被修改，那么我们读的这个pinode信息就是不一致的，可能导致严重错误
 	// 同时这也保证了如果valid 0那么就进行inode_load操作
 	if (inode_lock(pinode) == -1)
+	{
+		inode_reduce_ref(pinode);
 		return -1;
+	}
 	sbuf->st_ino = pinode->inum;
 	sbuf->st_size = pinode->dinode.size;
 	sbuf->st_dev = pinode->dev;

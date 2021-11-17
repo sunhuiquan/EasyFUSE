@@ -10,9 +10,6 @@
 /* 开机系统启动后加载文件系统 */
 void *userspace_fs_init();
 
-/* wraper */
-int wraper(const char *path, short type);
-
 /* 获取文件属性，返回-ENOENT代表无此文件，注意要直接返回给libfuse接口用于通知 */
 int userspace_fs_stat(const char *path, struct stat *sbuf);
 

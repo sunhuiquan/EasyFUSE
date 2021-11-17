@@ -7,6 +7,7 @@
 
 #define BLOCK_SIZE 1024 // 块大小 1024B
 
+// 目前只支持这三种文件类型
 #define FILE_DIR 1
 #define FILE_REG 2
 #define FILE_LNK 4
@@ -41,7 +42,7 @@ struct super_block // super block 在内存中的数据结构
 	ulong magic;			   // 魔数，用于验证使用的FS确实是经过初始化，且是这个FS而不是其他FS的验证数
 };
 
-#define MAX_NAME 14 // basename 最大长度
+#define MAX_NAME 14	  // basename 最大长度
 #define MAX_PATH 1024 // 路径最大长度
 
 struct dirent
@@ -78,5 +79,8 @@ int inner_link(const char *oldpath, const char *newpath);
 
 /* 创建符号链接内部实现函数 */
 int inner_symlink(const char *oldpath, const char *newpath);
+
+/* write 内部实现函数 */
+int inner_write(const char *path, const char *buf, size_t count, off_t offset);
 
 #endif

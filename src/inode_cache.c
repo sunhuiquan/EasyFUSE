@@ -330,7 +330,9 @@ int readinode(struct inode *pi, void *dst, uint off, uint n)
  * 然后写这个数据块。
  *
  * 看起来是直接写到对应磁盘（虽然实际上是写入block_cache缓存，还没有实际写入磁盘中，
- * 但从inode layer级别上来看是认为写入磁盘了）
+ * 但从inode layer级别上来看是认为写入磁盘了）。
+ *
+ * 内部调用write_log_head()，之后日志层提交的时候会真正地写入磁盘。
  */
 int writeinode(struct inode *pi, const void *src, uint off, uint n)
 {
@@ -362,9 +364,8 @@ int writeinode(struct inode *pi, const void *src, uint off, uint n)
 		if (block_unlock_then_reduce_ref(bbuf) == -1)
 			return -1;
 	}
-	if (off > pi->dinode.size)
+	if (off > pi->dinode.size) // 更新文件大小元数据
 		pi->dinode.size = off;
-
 	if (inode_update(pi) == -1)
 		return -1;
 	return writen;
