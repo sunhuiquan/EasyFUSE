@@ -83,4 +83,7 @@ int inner_symlink(const char *oldpath, const char *newpath);
 /* write 内部实现函数 */
 int inner_write(const char *path, const char *buf, size_t count, off_t offset);
 
+/* rename 内部实现函数 */
+int inner_rename(const char *oldpath, const char *newpath);
+
 #endif

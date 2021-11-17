@@ -29,6 +29,7 @@ add_executable(
   src/syscalls/userspace_fs_link.c
   src/syscalls/userspace_fs_symlink.c
   src/syscalls/userspace_fs_readlink.c
+  src/syscalls/userspace_fs_rename.c
   src/syscalls/userspace_fs_open.c
   src/syscalls/userspace_fs_read.c
   src/syscalls/userspace_fs_write.c

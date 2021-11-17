@@ -16,7 +16,10 @@ int userspace_fs_link(const char *oldpath, const char *newpath)
 		return -1;
 
 	if (inner_link(oldpath, newpath) == -1)
+	{
+		out_transaction();
 		return -1;
+	}
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;

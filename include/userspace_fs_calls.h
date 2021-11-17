@@ -38,6 +38,9 @@ int userspace_fs_symlink(const char *oldpath, const char *newpath);
 /* 读符号链接，把指向的路径写到buf里面，注意这是对符号链接操作 */
 int userspace_fs_readlink(const char *path, char *buf, size_t bufsz);
 
+/* 实现 libfuse rename 系统调用 */
+int userspace_fs_rename(const char *oldpath, const char *newpath);
+
 /* 实现 libfuse open 系统调用 */
 int userspace_fs_open(const char *path, struct fuse_file_info *fi);
 

@@ -17,7 +17,10 @@ int userspace_fs_write(const char *path, const char *buf, size_t count,
 	// to do fi打开文件标志的权限检测？？
 	int ret;
 	if ((ret = inner_write(path, buf, count, offset)) == -1)
+	{
+		out_transaction();
 		return ret;
+	}
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;

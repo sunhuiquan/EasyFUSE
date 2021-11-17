@@ -24,6 +24,7 @@ static struct fuse_operations u_operation = {
 	.link = userspace_fs_link,
 	.symlink = userspace_fs_symlink,
 	.readlink = userspace_fs_readlink,
+	.rename = userspace_fs_rename,
 	.open = userspace_fs_open,
 	.write = userspace_fs_write,
 	.read = userspace_fs_read};

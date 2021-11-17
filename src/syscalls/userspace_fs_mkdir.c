@@ -22,7 +22,10 @@ int userspace_fs_mkdir(const char *path, mode_t mode)
 	if ((pinode = inner_create(path, FILE_DIR)) == NULL)
 		return -1;
 	if (inode_unlock_then_reduce_ref(pinode) == -1)
+	{
+		out_transaction();
 		return -1;
+	}
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;

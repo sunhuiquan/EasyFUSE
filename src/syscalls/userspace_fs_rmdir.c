@@ -14,7 +14,10 @@ int userspace_fs_rmdir(const char *path)
 
 	int ret;
 	if ((ret = inner_unlink(path)) != 0) // 可能返回-EINVAL来让libfuse得知对应错误
+	{
+		out_transaction();
 		return ret;
+	}
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;

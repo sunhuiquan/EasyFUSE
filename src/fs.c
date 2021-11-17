@@ -524,3 +524,8 @@ int inner_write(const char *path, const char *buf, size_t count, off_t offset)
 		return -1;
 	return count;
 }
+
+/* rename 内部实现函数 */
+int inner_rename(const char *oldpath, const char *newpath)
+{
+}
