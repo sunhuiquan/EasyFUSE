@@ -525,7 +525,11 @@ int inner_write(const char *path, const char *buf, size_t count, off_t offset)
 	return count;
 }
 
-/* rename 内部实现函数 */
+/* rename 内部实现函数
+ *
+ * unlink后adddirent的思路，unlink可能导致nlink为0导致释放文件，错误；link后unlink删除的思路，
+ * 不错，但是因为目录不能link的问题，为了避免复杂度不想这样实现；所以这里写的比较麻烦。
+ */
 int inner_rename(const char *oldpath, const char *newpath)
 {
 	struct inode *old_dir_pinode, *new_dir_pinode, *pinode;
