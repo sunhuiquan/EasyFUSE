@@ -531,7 +531,7 @@ int inner_rename(const char *oldpath, const char *newpath)
 	struct inode *old_dir_pinode, *new_dir_pinode, *pinode;
 	uint offset;
 	char old_basename[MAX_NAME], new_basename[MAX_NAME];
-	struct dirent dirent;
+	struct dirent dirent, empty;
 
 	if (oldpath == NULL || newpath == NULL)
 		return -1;
@@ -547,6 +547,10 @@ int inner_rename(const char *oldpath, const char *newpath)
 		inode_reduce_ref(old_dir_pinode);
 		return -1;
 	}
+
+	/* 注意我们只改了目录项，不涉及nlink的改变，因此如果中间清空了旧目录项，但还没
+	 * 创建新目录项的时候出错，直接panic终止程序。
+	 */
 
 	// 同一个目录
 	if (old_dir_pinode->inum == new_dir_pinode->inum) // inum是内存属性字段，不用inode_load()
@@ -580,10 +584,64 @@ int inner_rename(const char *oldpath, const char *newpath)
 		return 0;
 	}
 
-	// 不同目录 to do
+	// 不同目录
+	// 清空旧目录项
+	if (inode_lock(old_dir_pinode) == -1)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		inode_reduce_ref(old_dir_pinode);
+		return -1;
+	}
+
+	// 找到对应旧目录项的偏移量
+	if ((pinode = dir_find(old_dir_pinode, old_basename, &offset)) == NULL)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		goto bad2;
+	}
+	if (inode_reduce_ref(pinode) == -1)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		goto bad2;
+	}
+
+	if (readinode(old_dir_pinode, &dirent, offset, sizeof(struct dirent)) == -1)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		goto bad2;
+	}
+	strncpy(dirent.name, new_basename, MAX_NAME);
+
+	memset(&empty, 0, sizeof(struct dirent));
+	if (writeinode(old_dir_pinode, &empty, offset, sizeof(struct dirent)) == -1)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		goto bad2;
+	}
+	if (inode_unlock_then_reduce_ref(old_dir_pinode) == -1)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		return -1;
+	}
+
+	// 添加新目录项
+	if (inode_lock(new_dir_pinode) == -1)
+	{
+		inode_reduce_ref(new_dir_pinode);
+		return -1;
+	}
+	if (add_dirent_entry(new_dir_pinode, dirent.name, dirent.inum) == -1)
+		goto bad;
+
+	if (inode_unlock_then_reduce_ref(new_dir_pinode) == -1)
+		return -1;
 	return 0;
 
 bad:
 	inode_unlock_then_reduce_ref(new_dir_pinode);
+	return -1;
+
+bad2:
+	inode_unlock_then_reduce_ref(old_dir_pinode);
 	return -1;
 }
