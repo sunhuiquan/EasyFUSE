@@ -313,7 +313,7 @@ int inner_unlink(const char *path)
 		return -1;
 	}
 
-	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL) // wrong??
+	if ((pinode = dir_find(dir_pinode, basename, &offset)) == NULL)
 		goto bad;
 
 	// rmdir无法删除.和..，返回-EINVAL告知libfuse错误
@@ -528,4 +528,62 @@ int inner_write(const char *path, const char *buf, size_t count, off_t offset)
 /* rename 内部实现函数 */
 int inner_rename(const char *oldpath, const char *newpath)
 {
+	struct inode *old_dir_pinode, *new_dir_pinode, *pinode;
+	uint offset;
+	char old_basename[MAX_NAME], new_basename[MAX_NAME];
+	struct dirent dirent;
+
+	if (oldpath == NULL || newpath == NULL)
+		return -1;
+	if (strlen(oldpath) >= MAX_PATH || strlen(newpath) >= MAX_PATH)
+		return -1;
+
+	// 必须等待两个find_dir_inode都结束才能加锁，不然
+	// 可能加锁上级目录inode导致之后的find_dir_inode死锁
+	if ((old_dir_pinode = find_dir_inode(oldpath, old_basename)) == NULL)
+		return -1;
+	if ((new_dir_pinode = find_dir_inode(newpath, new_basename)) == NULL)
+	{
+		inode_reduce_ref(old_dir_pinode);
+		return -1;
+	}
+
+	// 同一个目录
+	if (old_dir_pinode->inum == new_dir_pinode->inum) // inum是内存属性字段，不用inode_load()
+	{
+		if (inode_reduce_ref(old_dir_pinode) == -1)
+		{
+			inode_reduce_ref(new_dir_pinode);
+			return -1;
+		}
+
+		if (inode_lock(new_dir_pinode) == -1)
+		{
+			inode_reduce_ref(new_dir_pinode);
+			return -1;
+		}
+
+		// 找到对应目录项的偏移量
+		if ((pinode = dir_find(new_dir_pinode, old_basename, &offset)) == NULL)
+			goto bad;
+		if (inode_reduce_ref(pinode) == -1)
+			goto bad;
+
+		if (readinode(new_dir_pinode, &dirent, offset, sizeof(struct dirent)) == -1)
+			goto bad;
+		strncpy(dirent.name, new_basename, MAX_NAME);
+		if (writeinode(new_dir_pinode, &dirent, offset, sizeof(struct dirent)) == -1)
+			goto bad;
+
+		if (inode_unlock_then_reduce_ref(new_dir_pinode) == -1)
+			return -1;
+		return 0;
+	}
+
+	// 不同目录 to do
+	return 0;
+
+bad:
+	inode_unlock_then_reduce_ref(new_dir_pinode);
+	return -1;
 }
