@@ -44,4 +44,12 @@ int userspace_fs_readlink(const char *path, char *buf, size_t bufsz);
 /* 实现 libfuse open 系统调用 */
 int userspace_fs_open(const char *path, struct fuse_file_info *fi);
 
+/* 实现 libfuse read 系统调用 */
+int userspace_fs_read(const char *path, char *buf, size_t bufsz,
+					  off_t offset, struct fuse_file_info *fi);
+
+/* 实现 libfuse write 系统调用 */
+int userspace_fs_write(const char *path, const char *buf, size_t count,
+					   off_t offset, struct fuse_file_info *fi);
+
 #endif

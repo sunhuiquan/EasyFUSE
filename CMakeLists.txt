@@ -30,6 +30,8 @@ add_executable(
   src/syscalls/userspace_fs_symlink.c
   src/syscalls/userspace_fs_readlink.c
   src/syscalls/userspace_fs_open.c
+  src/syscalls/userspace_fs_read.c
+  src/syscalls/userspace_fs_write.c
   # 辅助代码
   src/util.c)
 target_include_directories(fuse_run PRIVATE ${PROJECT_SOURCE_DIR}/include)

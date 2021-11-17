@@ -24,7 +24,9 @@ static struct fuse_operations u_operation = {
 	.link = userspace_fs_link,
 	.symlink = userspace_fs_symlink,
 	.readlink = userspace_fs_readlink,
-	.open = userspace_fs_open};
+	.open = userspace_fs_open,
+	.write = userspace_fs_write,
+	.read = userspace_fs_read};
 
 /* 注意fuse_main注册的u_operation里面的函数返回值对libfuse的作用的，例如getattr返回-ENOENT代表无此文件，
  * 通知了libfuse做相应的操作。
