@@ -9,7 +9,8 @@
 int userspace_fs_read(const char *path, char *buf, size_t bufsz,
 					  off_t offset, struct fuse_file_info *fi)
 {
-	// 注意fi->flags为0，这是因为libfuse在外面已经检测过了只有O_WRONLY或O_RDWR才能调用write
+	// 注意fi->flags为0外面这里使用不了，这不会影响外面的实现，因为libfuse在外面已经检测过了
+	// 只有O_RDONLY或O_RDWR才能调用read，不需要我们自己在read中实现对flags的检查
 	printf("offset: %ld\n", (long)offset);
 
 	struct inode *pinode;

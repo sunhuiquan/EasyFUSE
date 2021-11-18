@@ -14,6 +14,12 @@ static int userspace_fs_flush(const char *path, struct fuse_file_info *fi);
 // flush 是当关闭一个 open file handle 中最后一个 file descriptor 会调用
 static int userspace_fs_release(const char *path, struct fuse_file_info *fi);
 
+static int userspace_fs_utime(const char *path, struct utimbuf *time)
+{
+	// to do 待实现
+	return 0;
+}
+
 /* 对libfuse库接口的实现，我们在我们实现的FUSE系统调用中，对-1情况直接panic终止程序，报告错误 */
 static struct fuse_operations u_operation = {
 	.init = userspace_fs_init,
@@ -32,7 +38,8 @@ static struct fuse_operations u_operation = {
 	.read = userspace_fs_read,
 	.flush = userspace_fs_flush,
 	.release = userspace_fs_release,
-	.truncate = userspace_fs_truncate};
+	.truncate = userspace_fs_truncate,
+	.utime = userspace_fs_utime};
 
 /* 注意fuse_main注册的u_operation里面的函数返回值对libfuse的作用的，例如getattr返回-ENOENT代表无此文件，
  * 通知了libfuse做相应的操作。

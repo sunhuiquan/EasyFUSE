@@ -53,7 +53,8 @@ void pr_open_flags(const struct fuse_file_info *fi)
 		printf("O_EXCL ");
 	if (fi->flags & O_WRONLY)
 		printf("O_WRONLY ");
-	if (fi->flags == O_RDONLY) // RDONLY一般就自己但用，不过这里可能是因为未初始化也是0，而不是因为O_RDONLY
+	if (fi->flags == O_RDONLY + 0100000) // 0100000(8) 这个是大文件的标志，因为外面用了 #define _FILE_OFFSET_BITS 64
+										 // RDONLY一般就自己但用，不过这里可能是因为未初始化也是0，而不是因为O_RDONLY
 		printf("O_RDONLY（可能是因为未初始化也是0，而不是因为O_RDONLY） ");
 	if (fi->flags & O_RDWR)
 		printf("O_RDWR ");

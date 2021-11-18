@@ -213,7 +213,8 @@ to do 还有一堆
     - [x] 实现 FUSE symlink 系统调用
     - [x] 实现 FUSE readlink 系统调用
     - [x] 实现 FUSE rename 系统调用
-    - [ ] open O_WRONLY,O_RDONLY,O_RDWR,O_APPEND flags
+    - [x] open O_WRONLY,O_RDONLY
+    - [ ] open O_RDWR,O_APPEND flags
     - [ ] open O_CREATE flag
     - [ ] open O_EXCL flag
     - [x] 实现 FUSE read 系统调用
@@ -224,6 +225,7 @@ to do 还有一堆
 3. 编写测试用例进行单元测试：
 4. 日志恢复测试：
 5. 添加额外的文件系统调用及丰富功能：
+    - [] 实现 FUSE utime 系统调用
 6. 集成测试和性能分析：
 7. 补充文档、PPT：
 8. 毕设论文：

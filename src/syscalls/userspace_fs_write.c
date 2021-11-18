@@ -9,7 +9,8 @@
 int userspace_fs_write(const char *path, const char *buf, size_t count,
 					   off_t offset, struct fuse_file_info *fi)
 {
-	// 注意fi->flags为0，这是因为libfuse在外面已经检测过了只有O_WRONLY或O_RDWR才能调用write
+	// 注意fi->flags为0外面这里使用不了，这不会影响外面的实现，因为libfuse在外面已经检测过了
+	// 只有O_WRONLY或O_RDWR才能调用write，不需要我们自己在write中实现对flags的检查
 	printf("offset: %ld\n", (long)offset);
 
 	if (path == NULL || strlen(path) >= MAX_PATH)
@@ -20,14 +21,14 @@ int userspace_fs_write(const char *path, const char *buf, size_t count,
 		return -1;
 
 	// to do fi打开文件标志的权限检测？？
-	int ret;
-	if ((ret = inner_write(path, buf, count, offset)) == -1)
+	int writen;
+	if ((writen = inner_write(path, buf, count, offset)) == -1)
 	{
 		out_transaction();
-		return ret;
+		return writen;
 	}
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;
-	return 0;
+	return writen;
 }
