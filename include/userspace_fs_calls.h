@@ -52,4 +52,7 @@ int userspace_fs_read(const char *path, char *buf, size_t bufsz,
 int userspace_fs_write(const char *path, const char *buf, size_t count,
 					   off_t offset, struct fuse_file_info *fi);
 
+/* 实现 libfuse truncate 系统调用 */
+int userspace_fs_truncate(const char *path, off_t offset);
+
 #endif

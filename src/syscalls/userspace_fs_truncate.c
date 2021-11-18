@@ -3,8 +3,8 @@
 #include "log.h"
 #include <string.h>
 
-/* rmdir命令删除目录，注意要是空目录 */
-int userspace_fs_rmdir(const char *path)
+/* 实现 libfuse truncate 系统调用 */
+int userspace_fs_truncate(const char *path, off_t offset)
 {
 	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
@@ -13,14 +13,11 @@ int userspace_fs_rmdir(const char *path)
 	if (in_transaction() == -1) // 进入事务
 		return -1;
 
-	int ret;
-	if ((ret = inner_unlink(path)) != 0) // 可能返回-EINVAL来让libfuse得知对应错误
-	{
-		out_transaction();
-		return ret;
-	}
+	// to do
 
 	if (out_transaction() == -1) // 离开事务
 		return -1;
+	return 0;
+
 	return 0;
 }
