@@ -3,10 +3,14 @@
 #include "log.h"
 #include <string.h>
 
+#include <stdio.h>
+
 /* 实现 libfuse write 系统调用 */
 int userspace_fs_write(const char *path, const char *buf, size_t count,
 					   off_t offset, struct fuse_file_info *fi)
 {
+	printf("fh: %ld path: %s\n", (long)fi->fh, path);
+
 	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 

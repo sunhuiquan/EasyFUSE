@@ -214,10 +214,11 @@ to do 还有一堆
     - [x] 实现 FUSE readlink 系统调用
     - [x] 实现 FUSE rename 系统调用
     - [ ] 实现 FUSE open 系统调用
-    - [ ] 实现 FUSE read 系统调用
-    - [ ] 实现 FUSE write 系统调用
+    - [x] 实现 FUSE read 系统调用
+    - [x] 实现 FUSE write 系统调用
     - [ ] 实现 FUSE truncate 系统调用
     - [ ] 实现 FUSE flush 系统调用
+    - [ ] 搞清 libfuse 文件句柄抽象机制，修改
 
 3. 编写测试用例进行单元测试：
 4. 日志恢复测试：
