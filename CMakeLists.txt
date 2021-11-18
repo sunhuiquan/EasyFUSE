@@ -33,8 +33,8 @@ add_executable(
   src/syscalls/userspace_fs_open.c
   src/syscalls/userspace_fs_read.c
   src/syscalls/userspace_fs_write.c
+  src/syscalls/userspace_fs_truncate.c
   # 辅助代码
   src/util.c)
 target_include_directories(fuse_run PRIVATE ${PROJECT_SOURCE_DIR}/include)
-target_compile_definitions(fuse_run PRIVATE _FILE_OFFSET_BITS=64)
 target_link_libraries(fuse_run PRIVATE fuse)

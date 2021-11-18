@@ -14,10 +14,14 @@ int userspace_fs_open(const char *path, struct fuse_file_info *fi)
 	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
 
-	printf("%ld\n", (long)fi->fh);
-	fi->fh = a++;
-	printf("%ld\n", (long)fi->fh);
-	printf("flags: %d\n", fi->flags);
+	if (fi->flags & O_CREAT)
+	{
+		if (fi->flags & O_EXCL)
+		{
+		}
+	}
+	else if (fi->flags & O_EXCL)
+		return -1;
 
 	return 0;
 }

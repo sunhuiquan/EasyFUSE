@@ -5,6 +5,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdio.h>
+#include <fcntl.h>
 
 int min(int a, int b)
 {
@@ -41,4 +42,22 @@ void panic(const char *msg)
 {
 	printf("panic %s\n", msg);
 	exit(EXIT_FAILURE);
+}
+
+void pr_open_flags(const struct fuse_file_info *fi)
+{
+	printf("flags: ");
+	if (fi->flags & O_CREAT)
+		printf("O_CREAT ");
+	if (fi->flags & O_EXCL)
+		printf("O_EXCL ");
+	if (fi->flags & O_WRONLY)
+		printf("O_WRONLY ");
+	if (fi->flags & O_RDONLY)
+		printf("O_RDONLY ");
+	if (fi->flags & O_RDWR)
+		printf("O_RDWR ");
+	if (fi->flags & O_APPEND)
+		printf("O_APPEND ");
+	printf("\n");
 }

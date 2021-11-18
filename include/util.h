@@ -3,6 +3,7 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include "userspace_fs_calls.h"
 #include "fs.h"
 
 int min(int a, int b);
@@ -16,5 +17,7 @@ void pr(const char *msg);
 
 /* 出现致命错误，退出程序 */
 void panic(const char *msg);
+
+void pr_open_flags(const struct fuse_file_info *fi);
 
 #endif

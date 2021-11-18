@@ -3,7 +3,10 @@
 #ifndef USERSPACE_FS_CALLS_H
 #define USERSPACE_FS_CALLS_H
 
+#define _FILE_OFFSET_BITS 64
+#define FUSE_USE_VERSION 26
 #include <fuse.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 

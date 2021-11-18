@@ -3,10 +3,16 @@
 #include "inode_cache.h"
 #include <string.h>
 
+#include <stdio.h>
+#include "util.h"
+
 /* 实现 libfuse read 系统调用 */
 int userspace_fs_read(const char *path, char *buf, size_t bufsz,
 					  off_t offset, struct fuse_file_info *fi)
 {
+	printf("offset: %ld\n", (long)offset);
+	pr_open_flags(fi);
+
 	struct inode *pinode;
 	char temp[MAX_NAME];
 	int readn;

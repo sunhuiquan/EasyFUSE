@@ -4,12 +4,14 @@
 #include <string.h>
 
 #include <stdio.h>
+#include "util.h"
 
 /* 实现 libfuse write 系统调用 */
 int userspace_fs_write(const char *path, const char *buf, size_t count,
 					   off_t offset, struct fuse_file_info *fi)
 {
-	printf("fh: %ld path: %s\n", (long)fi->fh, path);
+	printf("offset: %ld\n", (long)offset);
+	pr_open_flags(fi);
 
 	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;
