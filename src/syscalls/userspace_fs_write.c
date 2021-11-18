@@ -4,14 +4,13 @@
 #include <string.h>
 
 #include <stdio.h>
-#include "util.h"
 
 /* 实现 libfuse write 系统调用 */
 int userspace_fs_write(const char *path, const char *buf, size_t count,
 					   off_t offset, struct fuse_file_info *fi)
 {
+	// 注意fi->flags为0，这是因为libfuse在外面已经检测过了只有O_WRONLY或O_RDWR才能调用write
 	printf("offset: %ld\n", (long)offset);
-	pr_open_flags(fi);
 
 	if (path == NULL || strlen(path) >= MAX_PATH)
 		return -1;

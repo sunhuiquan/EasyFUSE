@@ -17,7 +17,7 @@ int main()
 {
 	int fd1;
 
-	if ((fd1 = open(PATH, O_WRONLY)) == -1)
+	if ((fd1 = open(PATH, O_RDONLY)) == -1)
 		err_exit("fd1 open");
 
 	if (write(fd1, "a", 1) != 1)
