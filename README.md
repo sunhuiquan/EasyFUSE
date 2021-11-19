@@ -220,8 +220,7 @@ to do 还有一堆
     - [x] 实现 FUSE symlink 系统调用
     - [x] 实现 FUSE readlink 系统调用
     - [x] 实现 FUSE rename 系统调用
-    - [x] open O_WRONLY, O_RDONLY, O_RDWR, O_APPEND
-    - [ ] open O_CREATE, O_EXCL flag
+    - [x] 实现 FUSE open 系统调用
     - [x] 实现 FUSE read 系统调用
     - [x] 实现 FUSE write 系统调用
     - [x] 实现 FUSE truncate 系统调用
@@ -237,6 +236,7 @@ to do 还有一堆
     - [] 添加时间属性
     - [] 添加权限检查机制
     - [] 添加文件加锁机制
+    - [] 可能要更改为low-level API来降低接口的抽象程度
 
 5. 文档编写：
     - [] 了解什么是文档

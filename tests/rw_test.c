@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define PATH "../build/mountdir/b"
+#define PATH "../build/mountdir/a"
 
 void err_exit(const char *msg)
 {
@@ -15,23 +15,20 @@ void err_exit(const char *msg)
 
 int main()
 {
-	int fd1;
+	int fd, readn;
 	char ch;
 
-	if ((fd1 = open(PATH, O_RDWR)) == -1)
-		err_exit("fd1 open");
+	if ((fd = open(PATH, O_CREAT | O_RDWR | O_EXCL, 0666)) == -1)
+		err_exit("open");
 
-	for (int i = 0; i < 5000; ++i)
-		if (write(fd1, "a", 1) != 1)
-			err_exit("fd1 write");
-
-	int readn;
-	if ((readn = read(fd1, &ch, 1)) == -1)
-		err_exit("fd1 read");
-
+	// if (write(fd, "a", 1) != 1)
+	// 	err_exit("write");
+	if ((readn = read(fd, &ch, 1)) == -1)
+		err_exit("read");
 	if (readn == 0)
 		printf("EOF\n");
 	else
 		printf("%c\n", ch);
+
 	return 0;
 }
