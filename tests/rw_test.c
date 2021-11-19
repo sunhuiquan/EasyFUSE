@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#define PATH "../build/mountdir/a"
+#define PATH "../build/mountdir/b"
 
 void err_exit(const char *msg)
 {
@@ -15,42 +15,23 @@ void err_exit(const char *msg)
 
 int main()
 {
-	int fd1, fd2;
+	int fd1;
 	char ch;
 
-	if ((fd1 = open(PATH, O_WRONLY)) == -1)
+	if ((fd1 = open(PATH, O_RDWR)) == -1)
 		err_exit("fd1 open");
 
-	if (write(fd1, "b", 1) != 1)
-		err_exit("fd1 write");
+	for (int i = 0; i < 5000; ++i)
+		if (write(fd1, "a", 1) != 1)
+			err_exit("fd1 write");
 
-	if (write(fd1, "a", 1) != 1)
-		err_exit("fd1 write");
+	int readn;
+	if ((readn = read(fd1, &ch, 1)) == -1)
+		err_exit("fd1 read");
 
-	if (write(fd1, "a", 1) != 1)
-		err_exit("fd1 write");
-
-	if (write(fd1, "a", 1) != 1)
-		err_exit("fd1 write");
-
-	if ((fd2 = open(PATH, O_RDONLY)) == -1)
-		err_exit("fd2 open");
-
-	if (read(fd2, &ch, 1) != 1)
-		err_exit("fd2 read");
-	printf("%c\n", ch);
-
-	if (read(fd2, &ch, 1) != 1)
-		err_exit("fd2 read");
-	printf("%c\n", ch);
-
-	if (read(fd2, &ch, 1) != 1)
-		err_exit("fd2 read");
-	printf("%c\n", ch);
-
-	if (read(fd2, &ch, 1) != 1)
-		err_exit("fd2 read");
-	printf("%c\n", ch);
-
+	if (readn == 0)
+		printf("EOF\n");
+	else
+		printf("%c\n", ch);
 	return 0;
 }

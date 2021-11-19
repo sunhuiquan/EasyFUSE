@@ -189,6 +189,12 @@ to do 还有一堆
 
 ---
 
+## ToFix
+
+1. write 更新文件size不一致
+
+---
+
 ## Timeline
 
 1. 实现FUSE底层机制：
@@ -213,10 +219,8 @@ to do 还有一堆
     - [x] 实现 FUSE symlink 系统调用
     - [x] 实现 FUSE readlink 系统调用
     - [x] 实现 FUSE rename 系统调用
-    - [x] open O_WRONLY,O_RDONLY
-    - [ ] open O_RDWR,O_APPEND flags
-    - [ ] open O_CREATE flag
-    - [ ] open O_EXCL flag
+    - [x] open O_WRONLY, O_RDONLY, O_RDWR, O_APPEND
+    - [ ] open O_CREATE, O_EXCL flag
     - [x] 实现 FUSE read 系统调用
     - [x] 实现 FUSE write 系统调用
     - [x] 实现 FUSE truncate 系统调用
