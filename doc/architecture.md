@@ -1,15 +1,17 @@
 # EasyFUSE 的系统架构
 
-1. EasyFUSE 总体架构：
+## 1. EasyFUSE 总体架构
 
-    ![IMG](../resource/libfuse_work.png)
+![IMG](../resource/libfuse_work.png)
 
-    \[1\] [Linux VFS (Virtual file system)](https://en.wikipedia.org/wiki/Virtual_file_system) 为用户程序提供文件系统操作的统一接口，屏蔽不同文件系统的差异和操作细节。  
-    \[2\] EasyFUSE 底层设施，在其之上实现 libfuse 接口，里面主要是disk、inode、data block、log、bitmap 这五个层的机制的实现代码。  
-    \[3\] libfuse 转发 VFS 的请求会调用相应的 libfuse 接口的实现。  
-    \[4\] [libfuse](https://github.com/libfuse/libfuse) 是一个 Linux 支持的、开源的、转发 Linux VFS 与 FUSE 之间的请求和响应来实现用户态文件系统的 (FUSE) 的库。  
+\[1\] [Linux VFS (Virtual file system)](https://en.wikipedia.org/wiki/Virtual_file_system) 为用户程序提供文件系统操作的统一接口，屏蔽不同文件系统的差异和操作细节。  
+\[2\] EasyFUSE 底层设施，在其之上实现 libfuse 接口，里面主要是disk、inode、data block、log、bitmap 这五个层的机制的实现代码。  
+\[3\] libfuse 转发 VFS 的请求会调用相应的 libfuse 接口的实现。  
+\[4\] [libfuse](https://github.com/libfuse/libfuse) 是一个 Linux 支持的、开源的、转发 Linux VFS 与 FUSE 之间的请求和响应来实现用户态文件系统的 (FUSE) 的库。  
 
-2. EasyFUSE 底层设施(分层结构)：
+---
+
+## 2. EasyFUSE 底层设施(分层结构)
 
     ![IMG](../resource/layers.png)
 
@@ -28,8 +30,8 @@
 
    ---
 
-3. EasyFUSE 源代码结构说明：
-   
+## 3. EasyFUSE 源代码结构说明
+
    - [disk.c](src/disk.c) 磁盘层(disk layer)代码，里面是读写磁盘的驱动程序（我们的这里是通过linux文件API的模拟），也是逻辑块号转物理块号被驱动程序使用的地方（不过我们的实现使用的逻辑块与物理块是一对一的关系），同时这里也放置了位图层代码（因为代码耦合且相关代码较少）。
    - [log.c](src/log.c) 日志层(logging layer)代码，关于日志恢复、事务批处理提交的代码，只有这个层才实际直接写入磁盘，block layer是借助该层写磁盘数据的（除了在加载日志层之前要初始化磁盘文件例外）。
    - [block_cache.c](src/block_cache.c) 数据块缓存层(block layer)代码，提供磁盘上的数据块加载到内存的缓存机制。
@@ -49,3 +51,5 @@
    - [util.c](src/util.c) 用于输出各种辅助信息，以便debug的辅助函数库
    - [main.c](src/main.c) 主函数所在，使用libfuse接口实现我们的FUSE。
    - to do
+
+---
