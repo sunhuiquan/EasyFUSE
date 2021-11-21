@@ -1,5 +1,9 @@
 # EasyFUSE 的系统架构
 
+1. 总体架构
+
+    ![IMG](../resource/libfuse_work.png)
+
 2. 分层设计:
 
     ![IMG](../resource/layers.png)
