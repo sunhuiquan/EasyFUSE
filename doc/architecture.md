@@ -1,6 +1,8 @@
 # EasyFUSE 的系统架构
 
-## 1. EasyFUSE 总体架构
+该文档用于详细描述 EasyFUSE 的系统架构，包括运行原理、分层结构、代码结构等的说明。
+
+## 1. EasyFUSE 运行原理
 
 ![IMG](../resource/libfuse_work.png)
 
@@ -8,8 +10,6 @@
 \[2\] EasyFUSE 底层设施，在其之上实现 libfuse 接口，里面主要是disk、inode、data block、log、bitmap 这五个层的机制的实现代码。  
 \[3\] libfuse 转发 VFS 的请求会调用相应的 libfuse 接口的实现。  
 \[4\] [libfuse](https://github.com/libfuse/libfuse) 是一个 Linux 支持的、开源的、转发 Linux VFS 与 FUSE 之间的请求和响应来实现用户态文件系统的 (FUSE) 的库。  
-
----
 
 ## 2. EasyFUSE 底层设施(分层结构)
 
@@ -27,8 +27,6 @@
     10. 打开文件描述 layer —— 指向inode，linux内核维护的信息。
     11. 文件描述符 layer —— 指向打开文件描述，linux内核维护的信息。  
    （注：为了简单，我们实现的是high-lever libfuse接口，使用路径；另外fd的层次是高于VFS的，也就是说打开不同文件系统而来的fd和相同FS的打开得到的fd没有什么不同，都是顺序递增，不可能重复的，由内核维护，fd和FUSE一点关系都没有）
-
-   ---
 
 ## 3. EasyFUSE 源代码结构说明
 
@@ -51,5 +49,3 @@
    - [util.c](src/util.c) 用于输出各种辅助信息，以便debug的辅助函数库
    - [main.c](src/main.c) 主函数所在，使用libfuse接口实现我们的FUSE。
    - to do
-
----
