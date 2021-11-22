@@ -4,6 +4,8 @@
 
 ## 1. EasyFUSE 运行原理
 
+### (1) libfuse 实现用户态的原理
+
 各种形式的文件系统操作最后都是转成文件系统调用，然后陷入内核，经过 Linux VFS 处理，对于挂载用户态文件系统的文件系统操作 libfuse 会把调用请求转发给我们的 EasyFUSE 接口实现，我们的接口实现内部会对 EasyFUSE 底层的各层数据结构进行操作，然后返回结果，最后再由 libfuse 转发到 VFS 再到文件系统调用的结果返回，最终完成对文件系统的操作。
 
 ![IMG](../resource/libfuse_work.png)
@@ -12,6 +14,12 @@
 \[2\] EasyFUSE 底层设施，在其之上实现 libfuse 接口，里面主要是disk、inode、data block、log、bitmap 这五个层的机制的实现代码。  
 \[3\] libfuse 转发 VFS 的请求会调用相应的 libfuse 接口的实现。  
 \[4\] [libfuse](https://github.com/libfuse/libfuse) 是一个 Linux 支持的、开源的、转发 Linux VFS 与 FUSE 之间的请求和响应来实现用户态文件系统的 (FUSE) 的库。  
+
+### (2) 进程视角下 libfuse 映射
+
+1. 首先我们要知道文件描述符（File descriptor）与打开文件描述（Open file handle/entry）这两个数据结构的层次是在 Linux 抽象文件系统（VFS）机制之上的，也就是说打开不同文件系统而来的文件描述符和相同FS的打开得到的fd没有什么不同，打开文件描述也是一样，都是由 Linux 内核维护，文件描述符和打开文件描述和我们的 EasyFUSE 一点关系都没有。同样对于比文件描述符的更高层包装类型文件流 FILE*，内部包含着文件描述符，同样如此与 FUSE 一点关系都没有。  
+2. 我们实现的是 high-lever libfuse 接口，libfuse API 使用路径作为参数，libfuse 改变了原来的 **Open file handle——Inode** 的映射关系，提供了 **Open file handle——路径——Inode** 的映射关系。
+![IMG](../resource/fd_and_handle.png)
 
 ## 2. EasyFUSE 底层设施(分层结构)
 
@@ -61,17 +69,6 @@
 2. 和Inode层一样，通过两层锁机制和引用计数保证并发支持，以及正确的释放和复用缓存空间。
 3. 该层写磁盘最终是借助日志层的 write_log_head() 调用，并最终在日志提交时才真正进行写磁盘。
 4. 实现简易的 LRU 机制，更好地重用缓存空间。
-
----
-
-    <!--    1. path layer —— 路径层，为上一层的我们自己文件系统的系统调用作为参数使用。
-    1. FUSE system calls layer —— 我们自己定义的系统调用，实现上一层的libfuse接口。
-    2. libfuse layer —— libfuse库作为中间层，监听上一层的VFS的请求，返回我们自己的结果。
-    3. linux VFS 机制 —— linux使用的虚拟文件系统机制，为上一层的glibc标准库的文件系统调用提供对应文件系统的功能 实现，比如对一个ext4 FS的文件操作，自然向下调用ext4 FS实现，如果是对我们的FUSE文件操作，那么就会进入下一层libfuse layer，让libfuse layer转发请求到我们用户态的实现。
-    4. glibc FS system calls layer —— 标准库的文件系统调用函数，不知要对哪一个文件系统调用。
-    5.  打开文件描述 layer —— 指向inode，linux内核维护的信息。
-    6.  文件描述符 layer —— 指向打开文件描述，linux内核维护的信息。  
-   （注：为了简单，我们实现的是high-lever libfuse接口，使用路径；另外fd的层次是高于VFS的，也就是说打开不同文件系统而来的fd和相同FS的打开得到的fd没有什么不同，都是顺序递增，不可能重复的，由内核维护，fd和FUSE一点关系都没有） -->
 
 ## 3. EasyFUSE 源代码结构说明
 
