@@ -4,6 +4,8 @@
 
 ## 1. EasyFUSE 运行原理
 
+各种形式的文件系统操作最后都是转成文件系统调用，然后陷入内核，经过 Linux VFS 处理，对于挂载用户态文件系统的文件系统操作 libfuse 会把调用请求转发给我们的 EasyFUSE 接口实现，我们的接口实现内部会对 EasyFUSE 底层的各层数据结构进行操作，然后返回结果，最后再由 libfuse 转发到 VFS 再到文件系统调用的结果返回，最终完成对文件系统的操作。
+
 ![IMG](../resource/libfuse_work.png)
 
 \[1\] [Linux VFS (Virtual file system)](https://en.wikipedia.org/wiki/Virtual_file_system) 为用户程序提供文件系统操作的统一接口，屏蔽不同文件系统的差异和操作细节。  
@@ -13,20 +15,30 @@
 
 ## 2. EasyFUSE 底层设施(分层结构)
 
-    ![IMG](../resource/layers.png)
+![IMG](../resource/layers.png)
 
-    1. disk layer —— 读写磁盘的驱动代码（这里是用文件模拟），逻辑块与物理块映射关系；向上一层日志层提供读写磁盘的API。
-    2. log layer —— 向上一层block cache层提供写日志头信息块的接口，用于事务提交；向文件系统调用提供事务进出、事务批处理提交的功能。
-    3. block cache layer —— 为数据读写和上一层inode层读写inode结构提高数据块缓存机制。
-    4. inode cache layer —— 存储文件信息，被上一层路径层根据路径查找到inode结构，得到文件信息和数据块号。
-    5. path layer —— 路径层，为上一层的我们自己文件系统的系统调用作为参数使用。
-    6. FUSE system calls layer —— 我们自己定义的系统调用，实现上一层的libfuse接口。
-    7. libfuse layer —— libfuse库作为中间层，监听上一层的VFS的请求，返回我们自己的结果。
-    8. linux VFS 机制 —— linux使用的虚拟文件系统机制，为上一层的glibc标准库的文件系统调用提供对应文件系统的功能 实现，比如对一个ext4 FS的文件操作，自然向下调用ext4 FS实现，如果是对我们的FUSE文件操作，那么就会进入下一层libfuse layer，让libfuse layer转发请求到我们用户态的实现。
-    9. glibc FS system calls layer —— 标准库的文件系统调用函数，不知要对哪一个文件系统调用。
-    10. 打开文件描述 layer —— 指向inode，linux内核维护的信息。
-    11. 文件描述符 layer —— 指向打开文件描述，linux内核维护的信息。  
-   （注：为了简单，我们实现的是high-lever libfuse接口，使用路径；另外fd的层次是高于VFS的，也就是说打开不同文件系统而来的fd和相同FS的打开得到的fd没有什么不同，都是顺序递增，不可能重复的，由内核维护，fd和FUSE一点关系都没有）
+### 1. 磁盘层 [[/src/disk.c](../src/disk.c)]
+
+1. 实际读写磁盘的驱动代码（EasyFUSE 这里是用文件模拟磁盘读写），驱动这里有逻辑块号与物理块号的映射关系（EasyFUSE实现是1对1），该层向日志层提供事务提交时来真正读写物理磁盘的API。
+2. 物理磁盘存储格式结构：
+![IMG](../resource/disk.png)
+boot block是加载OS kernel的地方，这里未使用；super block存储的是该物理磁盘分区的元数据，比如各层的块数和开始块号；inode blocks 和 data blocks 的块数按照一定比例根据磁盘大小自动计算；另外位图使用固定32个块，这个值限定了FS最大的大小，我们这里为了简化未实现如ext4的块组的方式，只有一个块组，所以我们的位图块数需要多一些。  
+
+### 2. 日志层 [[/src/log.c](../src/log.c)]
+
+    - 向上一层block cache层提供写日志头信息块的接口，用于事务提交；向文件系统调用提供事务进出、事务批处理提交的功能。
+
+    <!-- 
+    1. block cache layer —— 为数据读写和上一层inode层读写inode结构提高数据块缓存机制。
+    2. inode cache layer —— 存储文件信息，被上一层路径层根据路径查找到inode结构，得到文件信息和数据块号。
+    3. path layer —— 路径层，为上一层的我们自己文件系统的系统调用作为参数使用。
+    4. FUSE system calls layer —— 我们自己定义的系统调用，实现上一层的libfuse接口。
+    5. libfuse layer —— libfuse库作为中间层，监听上一层的VFS的请求，返回我们自己的结果。
+    6. linux VFS 机制 —— linux使用的虚拟文件系统机制，为上一层的glibc标准库的文件系统调用提供对应文件系统的功能 实现，比如对一个ext4 FS的文件操作，自然向下调用ext4 FS实现，如果是对我们的FUSE文件操作，那么就会进入下一层libfuse layer，让libfuse layer转发请求到我们用户态的实现。
+    7. glibc FS system calls layer —— 标准库的文件系统调用函数，不知要对哪一个文件系统调用。
+    8.  打开文件描述 layer —— 指向inode，linux内核维护的信息。
+    9.  文件描述符 layer —— 指向打开文件描述，linux内核维护的信息。  
+   （注：为了简单，我们实现的是high-lever libfuse接口，使用路径；另外fd的层次是高于VFS的，也就是说打开不同文件系统而来的fd和相同FS的打开得到的fd没有什么不同，都是顺序递增，不可能重复的，由内核维护，fd和FUSE一点关系都没有） -->
 
 ## 3. EasyFUSE 源代码结构说明
 
