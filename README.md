@@ -13,15 +13,15 @@
 
 ## 项目介绍
 
-EasyFUSE 是一个出于学习目的轻量级用户态文件系统(FUSE)，支持并发和日志恢复，仿照 UNIX 文件系统实现。
+EasyFUSE 是一个出于学习目的轻量级用户态文件系统(FUSE)，支持并发和日志恢复，仿照 UNIX 文件系统实现，可运行在支持 libfuse 的 Linux 系统上。
 
 ## 项目文档
 
 1. [EasyFUSE 的系统架构](./doc/architecture.md)
-2. [EasyFUSE API 文档 to do自动生成](./README.md)
-3. [使用libfuse遇到的一些细节](./doc/libfuse_detail.md)
+2. [EasyFUSE API 文档 to do 自动生成](./README.md)
+3. [项目实现的一些细琐内容](./doc/libfuse_detail.md)
 4. [测试和性能分析](./doc/analysis.md)
-5. [相关的补充资料](./doc/reference.md)  
+5. [参考资料](./doc/reference.md)  
 (PS. 文档写的确实啰嗦，这是因为我要水毕业论文的字数。。。qwq)
 
 ## 如何使用
@@ -106,3 +106,6 @@ EasyFUSE 是一个出于学习目的轻量级用户态文件系统(FUSE)，支�
 3. 添加其他功能模块：
     - [ ] 添加时间属性
     - [ ] 添加权限检查机制
+
+4. 其他：
+    - [ ] 修改错误返回格式，统一标准

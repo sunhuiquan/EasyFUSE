@@ -81,7 +81,8 @@
   
 ### (2) 实现的 libfuse 接口代码
 
-每个接口对应的实现在 [/src/syscalls](../src/syscalls) 目录下，总体复用公共代码在 [/src/fs.c](../src/fs.c)。
+1. 每个接口对应的实现在 [/src/syscalls](../src/syscalls) 目录下，实现了init，create，link，unlink，mkdir，rmdir，open，read，write，stat，symlink，readlink，readaddr 等等二十个左右必要和常用的接口。
+2. 总体复用公共代码在 [/src/fs.c](../src/fs.c)。
 
 ### (3) 其他代码
 
