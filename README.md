@@ -22,7 +22,6 @@ EasyFUSE 是一个出于学习目的轻量级用户态文件系统(FUSE)，支�
 3. [项目实现的一些细琐内容](./doc/libfuse_detail.md)
 4. [测试和性能分析](./doc/analysis.md)
 5. [参考资料](./doc/reference.md)  
-(PS. 文档写的确实啰嗦，这是因为我要水毕业论文的字数。。。qwq)
 
 ## 如何使用
 
