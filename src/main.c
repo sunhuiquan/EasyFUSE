@@ -1,6 +1,10 @@
 #include "userspace_fs_calls.h" // 所有FUSE系统调用的声明
 #include <stdio.h>
-#include <syslog.h>
+#include <unistd.h>
+#include <string.h>
+
+#define MAX_PATHLEN 256
+char diskimg_path[MAX_PATHLEN] = "";
 
 /* 使用Debug模式构建，编译无优化，相当于-g，使得能被gdb调试；
  * 关于运行错误检测，开发的时候开启-d选项，这样libfuse的接口实现的函数返回-1的时候，程序会输出
@@ -60,12 +64,10 @@ static struct fuse_operations u_operation = {
  */
 int main(int argc, char *argv[])
 {
-	int ret = fuse_main(argc, argv, &u_operation, NULL);
-	if (ret != 0) {
-		printf("fuse_main failed：%d\n", ret);
-		syslog(LOG_ERR, "fuse_main failed with return value(%d)", ret);
-	}
-	return ret;
+	char buf[240];
+	getcwd(buf, 240);
+	snprintf(diskimg_path, MAX_PATHLEN, "%s/diskimg", buf);
+	return fuse_main(argc, argv, &u_operation, NULL);
 }
 
 // flush 是每次关闭 file descriptor 会调用，fi是对应的 open file handle(打开文件描述) 的属性
