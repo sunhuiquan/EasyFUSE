@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <stdio.h>
 #include <fcntl.h>
+#include <syslog.h>
 
 int min(int a, int b)
 {
@@ -15,6 +16,7 @@ int min(int a, int b)
 void err_exit(const char *msg)
 {
 	printf("%s failed: %s\n", msg, strerror(errno));
+	syslog(LOG_ERR, "%s failed: errno(%s)", msg, strerror(errno));
 	exit(EXIT_FAILURE);
 }
 
@@ -41,6 +43,7 @@ void pr(const char *msg)
 void panic(const char *msg)
 {
 	printf("panic %s\n", msg);
+	syslog(LOG_ERR, "%s errno(%s)", msg, strerror(errno));
 	exit(EXIT_FAILURE);
 }
 
