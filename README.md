@@ -26,9 +26,10 @@ EasyFUSE 是一个出于学习目的轻量级用户态文件系统(FUSE)，支�
 ## 如何使用
 
 1. 安装 libfuse2
-```bash
-sudo apt-get install libfuse2 libfuse-dev # 注意安装的是比较老的 libfuse2
-```
+
+    ```bash
+    sudo apt-get install libfuse2 libfuse-dev # 注意安装的是比较老的 libfuse2
+    ```
 
 2. 自动安装挂载
 
@@ -79,17 +80,17 @@ sudo apt-get install libfuse2 libfuse-dev # 注意安装的是比较老的 libfu
     ./fuse_run mount_dir
     ```
 
-    (2) 执行以下步骤让每次开机后自动加载FUSE，开机后执行fuse_run作为守护进程自动执行，无需上一步每次开机后手动加载fuse_run程序。
+    (2) 查看日志
+	``` bash
+	service rsyslog start # 比如对于 Ubuntu
+	tail -n num /var/log/syslog # Ubuntu rsyslog
+	```
+
+    (2) 挂载信息
 
     ```bash
-    # to do
-    ```
-
-    (3) 查看进程和挂载的信息
-
-    ```bash
-    ps -aux | grep 
     mount | grep mountdir
+	sudo umount mountdir # 删除前可能需要取消挂载
     ```
 
 ---
